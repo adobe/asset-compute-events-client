@@ -6,6 +6,13 @@ Adobe I/O Events Javascript Client
 
 A simple Javascript/NodeJS client for using [Adobe I/O Events](https://www.adobe.io/apis/cloudplatform/events/documentation.html).
 
+Installation
+------------
+
+```
+npm install @adobe-internal-nui/adobe-io-events-client
+```
+
 Usage
 -----
 
