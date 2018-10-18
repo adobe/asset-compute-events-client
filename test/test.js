@@ -33,10 +33,10 @@ function getIsoDate(date) {
 const DATE = new Date();
 
 // TODO: enable unique providers using timestamp again ONCE we have a stable cleanup
-const TEST_PROVIDER_ID = `__JS_CLIENT_TEST_${os.hostname()}_${getIsoDate(DATE)}`;
-const TEST_PROVIDER_LABEL = `JS Client Test ${os.hostname()} ${getIsoDate(DATE)}`;
-// const TEST_PROVIDER_ID = `__JS_CLIENT_TEST_${ORG}_${DATE.getTime()}`;
-// const TEST_PROVIDER_LABEL = `JS Client Test ${os.hostname()} ${getIsoDate(DATE)} ${DATE.getTime()}`;
+const TEST_PROVIDER_ID = `__JS_CLIENT_TEST_alexkli-macbook-pro.macromedia.com_2018-10-16`;
+const TEST_PROVIDER_LABEL = `JS Client Test alexkli-macbook-pro.macromedia.com 2018-10-16`;
+// const TEST_PROVIDER_ID    = `__${process.env.npm_package_name}__test__${os.hostname()}__${DATE.getTime()}`;
+// const TEST_PROVIDER_LABEL = `Test ${process.env.npm_package_name} ${os.hostname()} ${getIsoDate(DATE)} (${DATE.getTime()})`;
 
 const EVENT_CODE = "something_happened";
 
@@ -44,7 +44,6 @@ const EVENT_CODE = "something_happened";
 // test cases
 
 describe('AdobeIOEventsClient', function() {
-
     let ioevents;
 
     before("init test config", function() {
@@ -88,6 +87,10 @@ describe('AdobeIOEventsClient', function() {
             accessToken: process.env.ACCESS_TOKEN,
             orgId: process.env.ORG_ID
         });
+
+        console.log("        event provider id : ", TEST_PROVIDER_ID);
+        console.log("        event provider    : ", TEST_PROVIDER_LABEL);
+        console.log("        event type        : ", EVENT_CODE)
     });
 
     describe('new AdobeIOEventsClient()', () => {
