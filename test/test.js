@@ -48,7 +48,9 @@ describe('AdobeIOEventsClient', function() {
 
     before("init test config", function() {
         if (process.env.ORG_ID === undefined || process.env.ACCESS_TOKEN === undefined) {
-            assert(false, `ERROR: to run this end to end test you have to set these environment variables:
+            console.log(`        SKIPPING tests because of missing config.
+
+        To run this end to end test you have to set these environment variables:
 
             ORG_ID        - organization ID for a suitable test organization, example: 6EEF12345678901234567890@AdobeOrg
             ACCESS_TOKEN  - access token from an integration in console.adobe.io with I/O Events service entitlement.
@@ -74,27 +76,29 @@ describe('AdobeIOEventsClient', function() {
                 }
             ]
 `);
-            assert(process.env.ORG_ID !== undefined, "environment variable ORG_ID is not set");
-            assert(process.env.ACCESS_TOKEN !== undefined, "environment variable ACCESS_TOKEN is not set");
+
+            this.test.parent.pending = true;
+            this.skip();
+
+        } else {
+            // check token is valid for another 5 min at least
+            const jwt = jsonwebtoken.decode(process.env.ACCESS_TOKEN);
+            const expires = new Date(Number(jwt.created_at) + Number(jwt.expires_in));
+            assert(expires.getTime() > (new Date().getTime() + 5*60*1000), "access token expired or too close to expiry time");
+
+            ioevents = new AdobeIOEventsClient({
+                accessToken: process.env.ACCESS_TOKEN,
+                orgId: process.env.ORG_ID
+            });
+
+            console.log("        event provider id: ", TEST_PROVIDER_ID);
+            console.log("        event provider   : ", TEST_PROVIDER_LABEL);
+            console.log("        event type       : ", EVENT_CODE)
         }
-
-        // check token is valid for another 5 min at least
-        const jwt = jsonwebtoken.decode(process.env.ACCESS_TOKEN);
-        const expires = new Date(Number(jwt.created_at) + Number(jwt.expires_in));
-        assert(expires.getTime() > (new Date().getTime() + 5*60*1000), "access token expired or too close to expiry time");
-
-        ioevents = new AdobeIOEventsClient({
-            accessToken: process.env.ACCESS_TOKEN,
-            orgId: process.env.ORG_ID
-        });
-
-        console.log("        event provider id : ", TEST_PROVIDER_ID);
-        console.log("        event provider    : ", TEST_PROVIDER_LABEL);
-        console.log("        event type        : ", EVENT_CODE)
     });
 
-    describe('new AdobeIOEventsClient()', () => {
-        it('should fail on incomplete arguments', () => {
+    describe('new AdobeIOEventsClient()', function() {
+        it('should fail on incomplete arguments', function() {
             try {
                 new AdobeIOEventsClient();
                 assert(false);
