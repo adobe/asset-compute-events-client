@@ -44,7 +44,7 @@ const EVENT_CODE = "something_happened";
 // test cases
 
 describe('AdobeIOEventsClient', function() {
-    let ioevents;
+    let ioEvents;
 
     before("init test config", function() {
         if (process.env.ORG_ID === undefined || process.env.ACCESS_TOKEN === undefined) {
@@ -86,7 +86,7 @@ describe('AdobeIOEventsClient', function() {
             const expires = new Date(Number(jwt.created_at) + Number(jwt.expires_in));
             assert(expires.getTime() > (new Date().getTime() + 5*60*1000), "access token expired or too close to expiry time");
 
-            ioevents = new AdobeIOEventsClient({
+            ioEvents = new AdobeIOEventsClient({
                 accessToken: process.env.ACCESS_TOKEN,
                 orgId: process.env.ORG_ID
             });
@@ -119,8 +119,25 @@ describe('AdobeIOEventsClient', function() {
     describe('#registerEventProvider()', () => {
         it('should register an event provider', () => {
 
-            return ioevents.registerEventProvider({
+            return ioEvents.registerEventProvider({
                 id: TEST_PROVIDER_ID,
+                label: TEST_PROVIDER_LABEL,
+                grouping: AdobeIOEventsClient.Groups.MARKETING_CLOUD
+            })
+            .then(() => {
+                assert(true);
+            });
+        });
+
+        it('should register an event provider with provider set in defaults', () => {
+
+            ioEvents = new AdobeIOEventsClient({
+                accessToken: process.env.ACCESS_TOKEN,
+                orgId: process.env.ORG_ID,
+                providerId: TEST_PROVIDER_ID
+            });
+
+            return ioEvents.registerEventProvider({
                 label: TEST_PROVIDER_LABEL,
                 grouping: AdobeIOEventsClient.Groups.MARKETING_CLOUD
             })
@@ -133,8 +150,26 @@ describe('AdobeIOEventsClient', function() {
     describe('#registerEventType()', () => {
         it('should register an event type', () => {
 
-            return ioevents.registerEventType({
+            return ioEvents.registerEventType({
                 provider: TEST_PROVIDER_ID,
+                code: EVENT_CODE,
+                label: "Something Happened",
+                description: "This event indicates that something happened"
+            })
+            .then(() => {
+                assert(true);
+            });
+        });
+
+        it('should register an event type with provider set in defaults', () => {
+
+            ioEvents = new AdobeIOEventsClient({
+                accessToken: process.env.ACCESS_TOKEN,
+                orgId: process.env.ORG_ID,
+                providerId: TEST_PROVIDER_ID
+            });
+
+            return ioEvents.registerEventType({
                 code: EVENT_CODE,
                 label: "Something Happened",
                 description: "This event indicates that something happened"
@@ -146,16 +181,35 @@ describe('AdobeIOEventsClient', function() {
     });
 
     describe('#sendEvent()', () => {
+        // TODO: register journal to see event gets received
+
         it('should send an event', () => {
 
-            // TODO: register journal to see event gets received
-
-            return ioevents.sendEvent({
+            return ioEvents.sendEvent({
                 provider: TEST_PROVIDER_ID,
                 code: EVENT_CODE,
                 payload: {
                     hello: "world",
                     date: new Date()
+                }
+            })
+            .then(() => {
+                assert(true);
+            });
+        });
+
+        it('should send an event with provider set in defaults', () => {
+
+            ioEvents = new AdobeIOEventsClient({
+                accessToken: process.env.ACCESS_TOKEN,
+                orgId: process.env.ORG_ID,
+                providerId: TEST_PROVIDER_ID
+            });
+
+            return ioEvents.sendEvent({
+                code: EVENT_CODE,
+                payload: {
+                    hello: "world"
                 }
             })
             .then(() => {

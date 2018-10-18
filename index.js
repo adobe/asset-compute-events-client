@@ -25,8 +25,9 @@ class AdobeIOEventsClient {
 
     /**
      * @typedef {Object} IoEventsOptions
-     * @property {String} orgId The IMS organization ID of the tenant
-     * @property {String} accessToken Valid access token from a technical account in the organization
+     * @property {String} orgId The IMS organization ID of the tenant (required)
+     * @property {String} accessToken Valid access token from a technical account in the organization (required)
+     * @property {String} providerId Default provider ID to use in API calls (optional, no spaces)
      */
     /**
      * Creates a new Adobe I/O events client with specific credentials to use.
@@ -45,13 +46,16 @@ class AdobeIOEventsClient {
             orgId: options.orgId,
             clientId: jwt.client_id
         };
+        this.defaults = {
+            providerId: options.providerId
+        }
     }
 
     /**
      * @typedef {Object} EventProvider
-     * @property {String} id Unique id of the provider (no spaces)
-     * @property {String} label Label for the provider shown in UIs
-     * @property {String} grouping Group under which this provider should appaear in UIs
+     * @property {String} id Unique id of the provider (no spaces). If not set will use the `options.providerId` passed in the constructor.
+     * @property {String} label Label for the provider shown in UIs (required)
+     * @property {String} grouping Group under which this provider should appaear in UIs (required)
      */
     /**
      * Register a new event provider or update an existing one.
@@ -70,7 +74,7 @@ class AdobeIOEventsClient {
             },
             json: true,
             body: {
-                provider: provider.id,
+                provider: provider.id || this.defaults.providerId,
                 grouping: provider.grouping,
                 label: provider.label
             }
@@ -80,7 +84,7 @@ class AdobeIOEventsClient {
 
     /**
      * @typedef {Object} EventType
-     * @property {String} provider The id of the provider for which this event type shall be registered
+     * @property {String} provider The id of the provider for which this event type shall be registered. If not set will use the `options.providerId` passed in the constructor.
      * @property {String} code Unique event type name (no spaces)
      * @property {String} label Label for the event type shown in UIs
      * @property {String} description More elaborate description of the event type
@@ -100,7 +104,7 @@ class AdobeIOEventsClient {
             },
             json: true,
             body: {
-                provider: eventType.provider,
+                provider: eventType.provider || this.defaults.providerId,
                 event_code: eventType.code,
                 label: eventType.label,
                 description: eventType.description
@@ -110,9 +114,9 @@ class AdobeIOEventsClient {
 
     /**
      * @typedef {Object} Event
-     * @property {String} provider The id of the provider sending this event
-     * @property {String} code Event type name
-     * @property {Object} payload The custom event payload
+     * @property {String} provider The id of the provider sending this event. If not set will use the `options.providerId` passed in the constructor.
+     * @property {String} code Event type name (required)
+     * @property {Object} payload The custom event payload (required)
      */
     /**
      * Send an event
@@ -130,7 +134,7 @@ class AdobeIOEventsClient {
             },
             body: JSON.stringify({
                 user_guid: this.auth.orgId,
-                provider_id: event.provider,
+                provider_id: event.provider || this.defaults.providerId,
                 event_code: event.code,
                 event: Buffer.from(JSON.stringify(event.payload)).toString('base64')
             })
