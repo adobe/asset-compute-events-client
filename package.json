@@ -1,7 +1,7 @@
 {
   "name": "@adobe-internal-nui/adobe-io-events-client",
   "version": "0.0.1",
-  "main": "events.js",
+  "main": "index.js",
   "description": "Adobe I/O Events Javascript Client",
   "author": {
     "name": "Adobe Inc."
