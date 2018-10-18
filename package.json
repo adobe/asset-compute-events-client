@@ -1,0 +1,29 @@
+{
+  "name": "@adobe-internal-nui/io-events-client",
+  "version": "0.0.1",
+  "main": "events.js",
+  "description": "Adobe I/O Events NodeJS Client",
+  "author": {
+    "name": "Adobe Systems Inc."
+  },
+  "publishConfig": {
+    "registry": "https://artifactory.corp.adobe.com/artifactory/api/npm/npm-nui-release-local"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.corp.adobe.com/nui/io-events-client.git"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^8.3.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2"
+  },
+  "devDependencies": {
+    "eslint": "^5.2.0",
+    "eslint-config-problems": "^1.1.0",
+    "mocha": "^5.2.0"
+  }
+}
