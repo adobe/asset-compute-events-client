@@ -1,17 +1,17 @@
 {
-  "name": "@adobe-internal-nui/io-events-client",
+  "name": "@adobe-internal-nui/adobe-io-events-client",
   "version": "0.0.1",
   "main": "events.js",
-  "description": "Adobe I/O Events NodeJS Client",
+  "description": "Adobe I/O Events Javascript Client",
   "author": {
-    "name": "Adobe Systems Inc."
+    "name": "Adobe Inc."
   },
   "publishConfig": {
     "registry": "https://artifactory.corp.adobe.com/artifactory/api/npm/npm-nui-release-local"
   },
   "repository": {
     "type": "git",
-    "url": "https://git.corp.adobe.com/nui/io-events-client.git"
+    "url": "https://git.corp.adobe.com/nui/adobe-io-events-client.git"
   },
   "scripts": {
     "test": "mocha"
