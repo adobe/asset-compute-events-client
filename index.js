@@ -24,10 +24,16 @@ const jsonwebtoken = require('jsonwebtoken');
 class AdobeIOEventsClient {
 
     /**
+     * @typedef {Object} IoEventsOptionsDefaults
+     * @property {String} providerId Default provider ID to use in API calls (optional, no spaces)
+     * @property {String} ioOrgId short organization ID from console.adobe.io (not the IMS org ID), example: 105979
+     * @property {String} ioIntegrationId integration ID from console.adobe.io, example: 47334
+     */
+    /**
      * @typedef {Object} IoEventsOptions
      * @property {String} orgId The IMS organization ID of the tenant (required)
      * @property {String} accessToken Valid access token from a technical account in the organization (required)
-     * @property {String} providerId Default provider ID to use in API calls (optional, no spaces)
+     * @property {IoEventsOptionsDefaults} defaults various default ids to use in API calls (optional)
      */
     /**
      * Creates a new Adobe I/O events client with specific credentials to use.
@@ -46,9 +52,7 @@ class AdobeIOEventsClient {
             orgId: options.orgId,
             clientId: jwt.client_id
         };
-        this.defaults = {
-            providerId: options.providerId
-        }
+        this.defaults = options.defaults;
     }
 
     /**
@@ -66,7 +70,6 @@ class AdobeIOEventsClient {
         return request.post({
             url: 'https://csm.adobe.io/csm/events/provider',
             headers: {
-                'Content-Type': 'application/json',
                 // 'X-Adobe-IO-AEM-Version': '6.4.0',
                 // 'X-Adobe-Product': 'AEM',
                 'x-ims-org-id': this.auth.orgId,
@@ -98,7 +101,6 @@ class AdobeIOEventsClient {
         return request.post({
             url: 'https://csm.adobe.io/csm/events/metadata',
             headers: {
-                'Content-Type': 'application/json',
                 'x-ims-org-id': this.auth.orgId,
                 'Authorization': `Bearer ${this.auth.accessToken}`
             },
@@ -127,17 +129,100 @@ class AdobeIOEventsClient {
         return request.post({
             url: 'https://eg-ingress.adobe.io/api/events',
             headers: {
-                'Content-Type': 'application/json',
                 'x-ims-org-id': this.auth.orgId,
                 'x-api-key': this.auth.clientId,
                 'Authorization': `Bearer ${this.auth.accessToken}`
             },
-            body: JSON.stringify({
+            json: {
                 user_guid: this.auth.orgId,
                 provider_id: event.provider || this.defaults.providerId,
                 event_code: event.code,
                 event: Buffer.from(JSON.stringify(event.payload)).toString('base64')
-            })
+            },
+            resolveWithFullResponse: true
+        }).then(response => {
+            // console.log(response.statusCode, response.statusMessage);
+            // console.log(response.headers);
+            if (response.statusCode === 200) {
+                return Promise.resolve();
+            } else {
+                return Promise.reject(`sending event failed with ${response.statusCode} ${response.statusMessage}`);
+            }
+        });
+    }
+
+    /**
+     * @typedef {Object} Journal
+     * @property {String} name Name of the journal (required)
+     * @property {String} description Description of the journal (required)
+     * @property {Array} eventTypes List of event types (codes, as string) to subscribe to (at least 1 required)
+     * @property {String} providerId Default provider ID to use in API calls (optional, no spaces)
+     * @property {String} ioOrgId Short organization ID from console.adobe.io (not the IMS org ID), example: 105979
+     * @property {String} ioIntegrationId Integration ID from console.adobe.io, example: 47334
+     */
+    /**
+     * Create a new journal.
+     * @param {Journal} journal The journal to create
+     * @returns {Promise}
+     */
+    createJournal(journal) {
+        const body =   {
+            client_id: this.auth.clientId,
+            name: journal.name,
+            description: journal.description,
+            events_of_interest: [],
+            delivery_type: "JOURNAL",
+        };
+
+        for (const t of journal.eventTypes) {
+            if (typeof t === 'string') {
+                body.events_of_interest.push({
+                    event_code: t,
+                    provider: journal.providerId || this.defaults.providerId
+                });
+            } else if (typeof t === 'object') {
+                body.events_of_interest.push({
+                    event_code: t.type,
+                    provider: t.providerId || this.defaults.providerId
+                });
+            }
+        }
+
+        const ioOrgId = journal.ioOrgId || this.defaults.ioOrgId;
+        const ioIntegrationId = journal.ioIntegrationId || this.defaults.ioIntegrationId;
+
+        return request.post({
+            url: `https://api.adobe.io/events/organizations/${ioOrgId}/integrations/${ioIntegrationId}/registrations`,
+            headers: {
+                'x-api-key': this.auth.clientId,
+                'x-ims-org-id': this.auth.orgId,
+                'Authorization': `Bearer ${this.auth.accessToken}`
+            },
+            json: true,
+            body: body
+        });
+    }
+
+    /**
+     * Get recent events from a journal.
+     * @param {String} journalUrl Complete URL of the journal to read from (required)
+     * @param {Number} pageSize Maximum number of most recdent events to return (optional)
+     * @param {String} from ID of the first event to be returned (optional)
+     * @returns {Promise} with the response json including the events
+     */
+    getEventsFromJournal(journalUrl, pageSize, from) {
+        return request({
+            url: journalUrl,
+            headers: {
+                'x-api-key': this.auth.clientId,
+                'x-ims-org-id': this.auth.orgId,
+                'Authorization': `Bearer ${this.auth.accessToken}`
+            },
+            qs: {
+                pageSize: pageSize,
+                from: from
+            },
+            json: true
         });
     }
 }
