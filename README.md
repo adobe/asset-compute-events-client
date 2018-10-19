@@ -24,12 +24,15 @@ const ioEvents = new AdobeIOEventsClient({
     // access token from an integration/technical account with I/O Events entitlement
     accessToken: "ey...",
     // organization sending/receiving events
-    orgId: "6EEF12345678901234567890@AdobeOrg"
+    orgId: "6EEF12345678901234567890@AdobeOrg",
+    
+    defaults: {
+        providerId: "my_event_provider_id"
+    }
 });
 
 // send an event
 return ioEvents.sendEvent({
-    provider: "my_event_provider_id",
     code: "my_event_type",
     payload: {
         hello: "world",
