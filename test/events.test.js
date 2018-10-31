@@ -17,11 +17,12 @@
 
 'use strict';
 
-const AdobeIOEventsClient = require('../index');
+const AdobeIOEvents = require('../src/events');
+const AdobeAuth = require('../src/auth');
 const assert = require('assert');
-const jsonwebtoken = require('jsonwebtoken');
 const os = require("os");
 const util = require('util');
+const testconfig = require('./testconfig');
 
 // ---------------------------------------------------
 // helpers
@@ -87,88 +88,56 @@ const TEST_PROVIDER_LABEL = `Test adobe-io-events-client - ${os.hostname()} (${D
 const TEST_EVENT_CODE = "test_event";
 const TEST_EVENT_LABEL = "Test Event";
 
+const DESCRIPTION = "Automatically created by test code from @adobe-internal-nui/adobe-io-events-client. Can be deleted if it was left over.";
+
 // ---------------------------------------------------
 // test cases
 
-describe('AdobeIOEventsClient', function() {
+describe('AdobeIOEvents', function() {
     let ioEvents;
+    let integration;
+    let accessToken;
 
     before("init test config", function() {
-        if (process.env.ORG_ID === undefined || process.env.ACCESS_TOKEN === undefined ||
-            process.env.IO_ORG_ID === undefined || process.env.IO_INTEGRATION_ID === undefined) {
-            console.log(`        SKIPPING tests because of missing config.
+        integration = testconfig.loadIntegration();
+        if (integration !== undefined) {
+            return new AdobeAuth()
+                .createAccessToken(integration, AdobeIOEvents.JWT_META_SCOPES)
+                .then(token => {
+                    accessToken = token;
 
-        To run this end to end test you have to set these environment variables:
-
-            ORG_ID        - IMS organization ID for a suitable test organization, example: 6EEF12345678901234567890@AdobeOrg
-            ACCESS_TOKEN  - access token from an integration in console.adobe.io with I/O Events service entitlement.
-                            use the JWT tab on the integration in console.adobe.io to create the JWT, then use the
-                            curl command to get the access token
-            IO_ORG_ID          - short organization ID from console.adobe.io (not the IMS org ID), example: 105979
-            IO_INTEGRATION_ID  - integration ID from console.adobe.io, example: 47334
-                                 extract these IDs from the web URL when looking at an integration:
-                                 https://console.adobe.io/integrations/{IO_ORG_ID}/{IO_INT_ID}/overview
-
-        When using VS Code, you can set environments variables in your tasks.json for the test task like this:
-
-            "tasks": [
-                {
-                    "type": "npm",
-                    "script": "test",
-                    "group": {
-                        "kind": "test",
-                        "isDefault": true
-                    },
-                    "options": {
-                        "env": {
-                            "ORG_ID": "6EEF12345678901234567890@AdobeOrg",
-                            "ACCESS_TOKEN": "eyJ4NX...............",
-                            "IO_ORG_ID": "105979",
-                            "IO_INTEGRATION_ID": "47334"
+                    ioEvents = new AdobeIOEvents({
+                        accessToken: accessToken,
+                        orgId: integration.orgId,
+                        defaults: {
+                            ioOrgId: integration.consoleOrgId,
+                            ioIntegrationId: integration.consoleIntegrationId
                         }
-                    }
-                }
-            ]
-`);
+                    });
 
+                    console.log("        event provider id: ", TEST_PROVIDER_ID);
+                    console.log("        event provider   : ", TEST_PROVIDER_LABEL);
+                    console.log("        event type       : ", TEST_EVENT_CODE)
+                });
+        } else {
             this.test.parent.pending = true;
             this.skip();
-
-        } else {
-            // check token is valid for another 5 min at least
-            const jwt = jsonwebtoken.decode(process.env.ACCESS_TOKEN);
-            const expires = new Date(Number(jwt.created_at) + Number(jwt.expires_in));
-            assert(expires.getTime() > (new Date().getTime() + 5*60*1000), "access token expired or too close to expiry time");
-
-            ioEvents = new AdobeIOEventsClient({
-                accessToken: process.env.ACCESS_TOKEN,
-                orgId: process.env.ORG_ID,
-                defaults: {
-                    ioOrgId: process.env.IO_ORG_ID,
-                    ioIntegrationId: process.env.IO_INTEGRATION_ID
-                }
-            });
-
-            console.log("        event provider id: ", TEST_PROVIDER_ID);
-            console.log("        event provider   : ", TEST_PROVIDER_LABEL);
-            console.log("        event type       : ", TEST_EVENT_CODE)
-            console.log("        IO_ORG_ID        : ", process.env.IO_ORG_ID);
-            console.log("        IO_INTEGRATION_ID: ", process.env.IO_INTEGRATION_ID);
+            return Promise.resolve();
         }
     });
 
-    describe('new AdobeIOEventsClient()', function() {
+    describe('new AdobeIOEvents()', function() {
         it('should fail on incomplete arguments', function() {
             try {
-                new AdobeIOEventsClient();
+                new AdobeIOEvents();
                 assert(false);
             } catch(ignore) {}
         });
 
         it('should fail on incorrect access token', () => {
             try {
-                new AdobeIOEventsClient({
-                    orgId: process.env.ORG_ID,
+                new AdobeIOEvents({
+                    orgId: integration.orgId,
                     accessToken: "my token"
                 });
                 assert(false);
@@ -182,7 +151,7 @@ describe('AdobeIOEventsClient', function() {
             return ioEvents.registerEventProvider({
                 id: TEST_PROVIDER_ID,
                 label: TEST_PROVIDER_LABEL,
-                grouping: AdobeIOEventsClient.Groups.MARKETING_CLOUD
+                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD
             })
             .then(() => {
                 assert(true);
@@ -191,9 +160,9 @@ describe('AdobeIOEventsClient', function() {
 
         it('should register an event provider with provider set in defaults', () => {
 
-            const ioEvents2 = new AdobeIOEventsClient({
-                accessToken: process.env.ACCESS_TOKEN,
-                orgId: process.env.ORG_ID,
+            const ioEvents2 = new AdobeIOEvents({
+                accessToken: accessToken,
+                orgId: integration.orgId,
                 defaults: {
                     providerId: TEST_PROVIDER_ID
                 }
@@ -201,7 +170,7 @@ describe('AdobeIOEventsClient', function() {
 
             return ioEvents2.registerEventProvider({
                 label: TEST_PROVIDER_LABEL,
-                grouping: AdobeIOEventsClient.Groups.MARKETING_CLOUD
+                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD
             })
             .then(() => {
                 assert(true);
@@ -225,9 +194,9 @@ describe('AdobeIOEventsClient', function() {
 
         it('should register an event type with provider set in defaults', () => {
 
-            const ioEvents2 = new AdobeIOEventsClient({
-                accessToken: process.env.ACCESS_TOKEN,
-                orgId: process.env.ORG_ID,
+            const ioEvents2 = new AdobeIOEvents({
+                accessToken: accessToken,
+                orgId: integration.orgId,
                 defaults: {
                     providerId: TEST_PROVIDER_ID
                 }
@@ -248,8 +217,8 @@ describe('AdobeIOEventsClient', function() {
 
         it('should create a journal', () => {
             return ioEvents.createJournal({
-                name: "js test code journal",
-                description: "js test code journal",
+                name: "js test journal",
+                description: DESCRIPTION,
                 providerId: TEST_PROVIDER_ID,
                 eventTypes: [TEST_EVENT_CODE]
             })
@@ -276,9 +245,9 @@ describe('AdobeIOEventsClient', function() {
             return ioEvents.registerEventProvider({
                 id: TEST_PROVIDER_ID,
                 label: TEST_PROVIDER_LABEL,
-                grouping: AdobeIOEventsClient.Groups.MARKETING_CLOUD
+                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD
             })
-            .then(response => {
+            .then(() => {
                 // console.log("        event provider response", response);
                 return ioEvents.registerEventType({
                     provider: TEST_PROVIDER_ID,
@@ -287,11 +256,11 @@ describe('AdobeIOEventsClient', function() {
                     description: "This event indicates that something happened"
                 })
             })
-            .then(response => {
+            .then(() => {
                 // console.log("        event type response", response);
                 return ioEvents.createJournal({
-                    name: `temporary js test code journal ${timestamp}`,
-                    description: "Automatically created by test code from @adobe-internal-nui/adobe-io-events-client. Can be deleted.",
+                    name: `temporary js test journal ${timestamp}`,
+                    description: DESCRIPTION,
                     providerId: TEST_PROVIDER_ID,
                     eventTypes: [TEST_EVENT_CODE]
                 })
@@ -302,7 +271,7 @@ describe('AdobeIOEventsClient', function() {
                 console.log("        waiting a bit for new journal in I/O events to become ready...");
             })
             // wait some time after creation otherwise sendEvent will fail with 204
-            .then(() => new Promise(resolve => setTimeout(resolve, 10000)))
+            .then(() => new Promise(resolve => setTimeout(resolve, 30 * 1000)))
             .catch(err => {
                 console.log("        SKIPPING send event tests because could not setup event registration and journal:", err);
                 this.skip();
@@ -337,9 +306,9 @@ describe('AdobeIOEventsClient', function() {
 
         it('should send an event with provider set in defaults', () => {
 
-            const ioEvents2 = new AdobeIOEventsClient({
-                accessToken: process.env.ACCESS_TOKEN,
-                orgId: process.env.ORG_ID,
+            const ioEvents2 = new AdobeIOEvents({
+                accessToken: accessToken,
+                orgId: integration.orgId,
                 defaults: {
                     providerId: TEST_PROVIDER_ID
                 }
