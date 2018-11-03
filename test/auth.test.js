@@ -38,7 +38,7 @@ describe('AdobeAuth', function() {
 
         it('should create an access token', function() {
             return new AdobeAuth()
-                .createAccessToken(integration, ["ent_adobeio_sdk"])
+                .createAccessToken(integration.technicalAccount, ["ent_adobeio_sdk"])
                 .then(accessToken => {
                     jsonwebtoken.decode(accessToken);
                 });

@@ -102,16 +102,16 @@ describe('AdobeIOEvents', function() {
         integration = testconfig.loadIntegration();
         if (integration !== undefined) {
             return new AdobeAuth()
-                .createAccessToken(integration, AdobeIOEvents.JWT_META_SCOPES)
+                .createAccessToken(integration.technicalAccount, AdobeIOEvents.JWT_META_SCOPES)
                 .then(token => {
                     accessToken = token;
 
                     ioEvents = new AdobeIOEvents({
                         accessToken: accessToken,
-                        orgId: integration.orgId,
+                        orgId: integration.technicalAccount.org,
                         defaults: {
-                            ioOrgId: integration.consoleOrgId,
-                            ioIntegrationId: integration.consoleIntegrationId
+                            consumerId: integration.consumerId,
+                            applicationId: integration.applicationId
                         }
                     });
 
@@ -137,7 +137,7 @@ describe('AdobeIOEvents', function() {
         it('should fail on incorrect access token', () => {
             try {
                 new AdobeIOEvents({
-                    orgId: integration.orgId,
+                    orgId: integration.technicalAccount.org,
                     accessToken: "my token"
                 });
                 assert(false);
@@ -162,7 +162,7 @@ describe('AdobeIOEvents', function() {
 
             const ioEvents2 = new AdobeIOEvents({
                 accessToken: accessToken,
-                orgId: integration.orgId,
+                orgId: integration.technicalAccount.org,
                 defaults: {
                     providerId: TEST_PROVIDER_ID
                 }
@@ -196,7 +196,7 @@ describe('AdobeIOEvents', function() {
 
             const ioEvents2 = new AdobeIOEvents({
                 accessToken: accessToken,
-                orgId: integration.orgId,
+                orgId: integration.technicalAccount.org,
                 defaults: {
                     providerId: TEST_PROVIDER_ID
                 }
@@ -308,7 +308,7 @@ describe('AdobeIOEvents', function() {
 
             const ioEvents2 = new AdobeIOEvents({
                 accessToken: accessToken,
-                orgId: integration.orgId,
+                orgId: integration.technicalAccount.org,
                 defaults: {
                     providerId: TEST_PROVIDER_ID
                 }

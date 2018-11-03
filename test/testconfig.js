@@ -17,41 +17,58 @@
 
 'use strict';
 
+const yaml = require('js-yaml');
+const fs = require('fs');
+
 module.exports = {
     loadIntegration: function() {
-        if (process.env.ADOBE_IO_INTEGRATION_JSON === undefined) {
+        if (process.env.ADOBE_IO_INTEGRATION_YAML) {
+            console.log("loading integration yaml", process.env.ADOBE_IO_INTEGRATION_YAML);
+            const yml = fs.readFileSync(process.env.ADOBE_IO_INTEGRATION_YAML, 'utf8');
+            return yaml.safeLoad(yml);
+
+        } else {
             console.log(`        SKIPPING tests because of missing config.
 
         To run this end to end test you have to
 
-        1. configure an integration in https://console.adobe.io in a test organization of choice with these services enabled:
-        - I/O Events
-        - I/O Management API
+        1. Configure an integration in https://console.adobe.io inside a
+           test organization of your choice with these services enabled:
 
-        2. create a json file as below with the technical account info from the integration, the path to the private key
-        you created for this integration, and the org & integration IDs taken from the console.adobe.io URL:
-        https://console.adobe.io/integrations/{consoleOrgId}/{consoleIntegrationId}/overview
+           - I/O Events
+           - I/O Management API
 
-        {
-            "clientId":             "1401f9dxxxxxxxxxxxxxxxxxxxxxxxxx",
-            "technicalAccountId":   "053530dxxxxxxxxxxxxxxxxx@techacct.adobe.com",
-            "orgId":                "6EEF747xxxxxxxxxxxxxxxxx@AdobeOrg",
-            "clientSecret":         "d34081fc-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-            "privateKeyFile":       "/path/to/private-pem-file.key",
-            "consoleOrgId":         "123456",
-            "consoleIntegrationId": "99999"
-        }
+        2. Create a YAML file as below.
 
-        3. set an environment variable that this test can see to the path of the json file created in step 2:
+           Include the technical account info from the integration, the
+           private key you created for this integration, and the
+           consumerId & applicationId taken from the console.adobe.io URL:
+               https://console.adobe.io/integrations/{consumerId}/{applicationId}/overview
 
-        ADOBE_IO_INTEGRATION_JSON=/path/to/integration-123456-99999.json
+           -------------------------------------------------------------------------------
+            consumerId:    123456
+            applicationId: 99999
+
+            technicalAccount:
+                id:           053530dxxxxxxxxxxxxxxxxx@techacct.adobe.com
+                org:          6EEF747xxxxxxxxxxxxxxxxx@AdobeOrg
+                clientId:     1401f9dxxxxxxxxxxxxxxxxxxxxxxxxx
+                clientSecret: d34081fc-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+                privateKey: |
+                    -----BEGIN PRIVATE KEY-----
+                    abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+                    mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+                    ....
+                    -----END PRIVATE KEY-----
+           -------------------------------------------------------------------------------
+
+        3. Set the following environment variable (visible to this test) to the
+           path of the YAML file created in step 2:
+
+           ADOBE_IO_INTEGRATION_YAML=/path/to/integration-123456-99999.yaml
             `);
 
             return undefined;
         }
-
-        console.log("loading integration:", process.env.ADOBE_IO_INTEGRATION_JSON);
-
-        return require(process.env.ADOBE_IO_INTEGRATION_JSON);
     }
 }

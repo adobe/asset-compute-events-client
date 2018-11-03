@@ -39,20 +39,21 @@ class AdobeAuth {
     }
 
     /**
-     * @typedef {Object} AdobeIOIntegration
+     * @typedef {Object} AdobeIdTechnicalAccount
+     * @property {String} id Id of the technical account, such as "12345667EDBA435@techacct.adobe.com"
+     * @property {String} org Organization id, such as "8765432DEAB65@AdobeOrg"
      * @property {String} clientId Client id (API key) of the technical account, such as "1234-5678-9876-5433"
-     * @property {String} technicalAccountId Id of the technical account, such as "12345667EDBA435@techacct.adobe.com"
-     * @property {String} orgId Organization id, such as "8765432DEAB65@AdobeOrg"
      * @property {String} clientSecret Client secret of the the technical account
-     * @property {String} privateKeyFile Path to the private key file PEM encoded
+     * @property {String} privateKey Path to the private key file PEM encoded (either this or `privateKeyFile` is required)
+     * @property {String} privateKeyFile Private key PEM encoded as string (either this or `privateKey` is required)
      */
     /**
      * Creates an access token for a technical account, returned in a promise.
-     * @param {AdobeIOIntegration} integration Integration (technical account) from console.adobe.io (required)
+     * @param {AdobeIdTechnicalAccount} technicalAccount Technical account from console.adobe.io (required)
      * @param {Array} metaScopes Meta scopes to use, passed as string array
      * @returns {Promise}
      */
-    createAccessToken(integration, metaScopes) {
+    createAccessToken(technicalAccount, metaScopes) {
         const adobeLoginHost = this.config.adobeLoginHost || ADOBE_ID_PRODUCTION_HOST;
 
         // 1. collect full metascopes
@@ -63,21 +64,24 @@ class AdobeAuth {
         });
 
         // 2. build & sign jwt
-        const privateKey = fs.readFileSync(integration.privateKeyFile);
-        const jwt = jsonwebtoken.sign(jwtPayload, privateKey, {
+        if (technicalAccount.privateKey === undefined) {
+            technicalAccount.privateKey = fs.readFileSync(technicalAccount.privateKeyFile, 'utf-8');
+        }
+
+        const jwt = jsonwebtoken.sign(jwtPayload, technicalAccount.privateKey, {
             algorithm: "RS256",
             expiresIn: "5m", // we only need the JWT once below, so make it short-lived
-            subject: integration.technicalAccountId,
-            issuer: integration.orgId,
-            audience: `${adobeLoginHost}/c/${integration.clientId}`
+            subject: technicalAccount.id,
+            issuer: technicalAccount.org,
+            audience: `${adobeLoginHost}/c/${technicalAccount.clientId}`
         })
 
         // 3. exchange against access token
         return request.post({
             url: `${adobeLoginHost}/ims/exchange/v1/jwt`,
             form: {
-                client_id: integration.clientId,
-                client_secret: integration.clientSecret,
+                client_id: technicalAccount.clientId,
+                client_secret: technicalAccount.clientSecret,
                 jwt_token: jwt
             }
         }).then(response => {

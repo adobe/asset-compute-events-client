@@ -26,8 +26,8 @@ class AdobeIOEvents {
     /**
      * @typedef {Object} IoEventsOptionsDefaults
      * @property {String} providerId Default provider ID to use in API calls (optional, no spaces)
-     * @property {String} ioOrgId short organization ID from console.adobe.io (not the IMS org ID), example: 105979
-     * @property {String} ioIntegrationId integration ID from console.adobe.io, example: 47334
+     * @property {String} consumerId short organization ID from console.adobe.io (not the IMS org ID), example: 105979
+     * @property {String} applicationId integration ID from console.adobe.io, example: 47334
      */
     /**
      * @typedef {Object} IoEventsOptions
@@ -156,8 +156,8 @@ class AdobeIOEvents {
      * @property {String} description Description of the journal (required)
      * @property {Array} eventTypes List of event types (codes, as string) to subscribe to (at least 1 required)
      * @property {String} providerId Default provider ID to use in API calls (optional, no spaces)
-     * @property {String} ioOrgId Short organization ID from console.adobe.io (not the IMS org ID), example: 105979
-     * @property {String} ioIntegrationId Integration ID from console.adobe.io, example: 47334
+     * @property {String} consumerId Short organization ID from console.adobe.io (not the IMS org ID), example: 105979
+     * @property {String} applicationId Integration ID from console.adobe.io, example: 47334
      */
     /**
      * Create a new journal.
@@ -187,11 +187,11 @@ class AdobeIOEvents {
             }
         }
 
-        const ioOrgId = journal.ioOrgId || this.defaults.ioOrgId;
-        const ioIntegrationId = journal.ioIntegrationId || this.defaults.ioIntegrationId;
+        const consumerId = journal.consumerId || this.defaults.consumerId;
+        const applicationId = journal.applicationId || this.defaults.applicationId;
 
         return request.post({
-            url: `https://api.adobe.io/events/organizations/${ioOrgId}/integrations/${ioIntegrationId}/registrations`,
+            url: `https://api.adobe.io/events/organizations/${consumerId}/integrations/${applicationId}/registrations`,
             headers: {
                 'x-api-key': this.auth.clientId,
                 'x-ims-org-id': this.auth.orgId,
