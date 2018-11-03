@@ -60,9 +60,10 @@ function assertEventInJournal(ioEvents, journalUrl, timeout, eventMatcher) {
         return ioEvents
             .getEventsFromJournal(journalUrl)
             .then(events => {
-                console.log("        ", util.inspect(events, {showHidden: false, depth: null}));
+                // console.log("        ", util.inspect(events, {showHidden: false, depth: null}));
                 // find matching event using eventMatcher function
                 if (events.events && events.events.some(eventMatcher)) {
+                    console.log("        event found in journal:", util.inspect(events, {showHidden: false, depth: null}));
                     return Promise.resolve();
                 } else {
                     return Promise.reject();
@@ -77,13 +78,8 @@ function assertEventInJournal(ioEvents, journalUrl, timeout, eventMatcher) {
 
 const DATE = new Date();
 
-// TODO: enable unique providers using timestamp again ONCE we have a stable cleanup
-// const TEST_PROVIDER_ID = `__JS_CLIENT_TEST_alexkli-macbook-pro.macromedia.com_2018-10-16`;
-// const TEST_PROVIDER_LABEL = `JS Client Test alexkli-macbook-pro.macromedia.com 2018-10-16`;
-// const TEST_PROVIDER_ID    = `__adobe-io-events-client__test__${os.hostname()}`;
-// const TEST_PROVIDER_LABEL = `Test adobe-io-events-client - ${os.hostname()}`;
 const TEST_PROVIDER_ID    = `__adobe-io-events-client__test__${os.hostname()}__${DATE.getTime()}`;
-const TEST_PROVIDER_LABEL = `Test adobe-io-events-client - ${os.hostname()} (${DATE.getTime()})`;
+const TEST_PROVIDER_LABEL = `${getIsoDate(DATE)} Test adobe-io-events-client - ${os.hostname()} (${DATE.getTime()})`;
 
 const TEST_EVENT_CODE = "test_event";
 const TEST_EVENT_LABEL = "Test Event";
@@ -97,6 +93,7 @@ describe('AdobeIOEvents', function() {
     let ioEvents;
     let integration;
     let accessToken;
+    const journalRegistrationIds = [];
 
     before("init test config", function() {
         integration = testconfig.loadIntegration();
@@ -117,7 +114,6 @@ describe('AdobeIOEvents', function() {
 
                     console.log("        event provider id: ", TEST_PROVIDER_ID);
                     console.log("        event provider   : ", TEST_PROVIDER_LABEL);
-                    console.log("        event type       : ", TEST_EVENT_CODE)
                 });
         } else {
             this.test.parent.pending = true;
@@ -217,13 +213,14 @@ describe('AdobeIOEvents', function() {
 
         it('should create a journal', () => {
             return ioEvents.createJournal({
-                name: "js test journal",
+                name: `${getIsoDate(DATE)} - JS test journal - create`,
                 description: DESCRIPTION,
                 providerId: TEST_PROVIDER_ID,
                 eventTypes: [TEST_EVENT_CODE]
             })
             .then(response => {
-                console.log(response);
+                console.log("        created journal with registration id", response.registration_id);
+                journalRegistrationIds.push(response.registration_id);
                 assert(true);
             });
         });
@@ -248,7 +245,6 @@ describe('AdobeIOEvents', function() {
                 grouping: AdobeIOEvents.Groups.MARKETING_CLOUD
             })
             .then(() => {
-                // console.log("        event provider response", response);
                 return ioEvents.registerEventType({
                     provider: TEST_PROVIDER_ID,
                     code: TEST_EVENT_CODE,
@@ -257,12 +253,15 @@ describe('AdobeIOEvents', function() {
                 })
             })
             .then(() => {
-                // console.log("        event type response", response);
                 return ioEvents.createJournal({
-                    name: `temporary js test journal ${timestamp}`,
+                    name: `${getIsoDate(DATE)} - JS test journal - send events`,
                     description: DESCRIPTION,
                     providerId: TEST_PROVIDER_ID,
                     eventTypes: [TEST_EVENT_CODE]
+                }).then(response => {
+                    console.log("        created journal with registration id", response.registration_id);
+                    journalRegistrationIds.push(response.registration_id);
+                    return response;
                 })
             })
             .then(response => {
@@ -290,7 +289,7 @@ describe('AdobeIOEvents', function() {
                     timestamp: timestamp
                 }
             })
-            .then(response => {
+            .then(() => {
                 console.log("        sent event.");
 
                 return assertEventInJournal(
@@ -331,5 +330,18 @@ describe('AdobeIOEvents', function() {
         // requires use of DELETE /csm/events/provider/{id} which is not working right now
 
         console.log("cleaning up...");
+
+        return Promise.all(
+            journalRegistrationIds.map(id => {
+                console.log("deleting journal registration:", id);
+                return ioEvents.deleteJournal(id)
+                    .catch(e => { console.error(e)});
+            })
+        ).then(() => {
+            console.log("deleting event provider:", TEST_PROVIDER_ID);
+            return ioEvents.deleteEventProvider(TEST_PROVIDER_ID)
+        }).then(() => {
+            console.log("cleanup done.");
+        });
     });
 });

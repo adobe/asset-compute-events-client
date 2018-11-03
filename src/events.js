@@ -85,6 +85,21 @@ class AdobeIOEvents {
     }
 
     /**
+     * Deletes an event provider.
+     * @param {String} providerId the id of the event provider to delete
+     * @returns {Promise}
+     */
+    deleteEventProvider(providerId) {
+        return request.delete({
+            url: `https://csm.adobe.io/csm/events/provider/${providerId}`,
+            headers: {
+                'x-ims-org-id': this.auth.orgId,
+                'Authorization': `Bearer ${this.auth.accessToken}`
+            }
+        });
+    }
+
+    /**
      * @typedef {Object} EventType
      * @property {String} provider The id of the provider for which this event type shall be registered. If not set will use the `options.providerId` passed in the constructor.
      * @property {String} code Unique event type name (no spaces)
@@ -201,6 +216,30 @@ class AdobeIOEvents {
             body: body
         });
     }
+
+    /**
+     * Deletes a journal or webhook registration.
+     * @param {String} registrationId the id of the event listener registration to delete
+     * @returns {Promise}
+     */
+    deleteJournal(registrationId) {
+        if (process.env.DELETE_JOURNAL_API_KEY === undefined) {
+            return Promise.reject("Cannot invoke ioEvents.deleteJournal() because special API key is not set as environment variable: DELETE_JOURNAL_API_KEY");
+        }
+        return request.delete({
+            url: `https://csm.adobe.io/csm/webhooks/${this.auth.clientId}/${registrationId}`,
+            headers: {
+                'x-ims-org-id': this.auth.orgId,
+
+                'x-api-key': process.env.DELETE_JOURNAL_API_KEY,
+
+                'x-ams-consumer-id': this.defaults.consumerId,
+                'x-ams-application-id': this.defaults.applicationId,
+                'Authorization': `Bearer ${this.auth.accessToken}`
+            }
+        });
+    }
+
 
     /**
      * Get recent events from a journal.

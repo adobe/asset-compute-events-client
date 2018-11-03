@@ -23,7 +23,7 @@ const fs = require('fs');
 module.exports = {
     loadIntegration: function() {
         if (process.env.ADOBE_IO_INTEGRATION_YAML) {
-            console.log("loading integration yaml", process.env.ADOBE_IO_INTEGRATION_YAML);
+            console.log("        loading integration yaml", process.env.ADOBE_IO_INTEGRATION_YAML);
             const yml = fs.readFileSync(process.env.ADOBE_IO_INTEGRATION_YAML, 'utf8');
             return yaml.safeLoad(yml);
 
