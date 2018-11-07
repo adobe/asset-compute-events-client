@@ -1,7 +1,7 @@
 Integration YAML
 ----------------
 
-This library uses a fully self-contained YAML file describing an Adobe I/O Integration including the necessary credentials (private key and client secret) to act on behalf of the technical account of the integration.
+We designed a fully self-contained YAML file describing an Adobe I/O Integration which can be used by applications and CLIs. This YAML also includes the necessary credentials (private key and client secret) to act on behalf of the technical account of the integration.
 
 ### Generate YAML using bookmarklet
 
