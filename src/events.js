@@ -151,7 +151,7 @@ class AdobeIOEvents {
                 user_guid: this.auth.orgId,
                 provider_id: event.provider || this.defaults.providerId,
                 event_code: event.code,
-                event: Buffer.from(JSON.stringify(event.payload)).toString('base64')
+                event: Buffer.from(JSON.stringify(event.payload || {})).toString('base64')
             },
             resolveWithFullResponse: true
         }).then(response => {
