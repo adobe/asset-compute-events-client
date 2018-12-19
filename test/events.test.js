@@ -84,7 +84,7 @@ const TEST_PROVIDER_LABEL = `${getIsoDate(DATE)} Test adobe-io-events-client - $
 const TEST_EVENT_CODE = "test_event";
 const TEST_EVENT_LABEL = "Test Event";
 
-const DESCRIPTION = "Automatically created by test code from @adobe-internal-nui/adobe-io-events-client. Can be deleted if it was left over.";
+const DESCRIPTION = "Automatically created by test code from @nui/adobe-io-events-client. Can be deleted if it was left over.";
 
 // ---------------------------------------------------
 // test cases

@@ -1,5 +1,5 @@
 <!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
-[![npm version](https://img.shields.io/badge/%40adobe--internal--nui%2Fadobe--io--events--client-0.0.4-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@adobe-internal-nui/adobe-io-events-client/-/@adobe-internal-nui/adobe-io-events-client-0.0.4.tgz)
+[![npm version](https://img.shields.io/badge/%40nui%2Fadobe--io--events--client-0.0.4-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/adobe-io-events-client/-/@nui/adobe-io-events-client-0.0.4.tgz)
 
 Adobe I/O Events Javascript Client
 ==================================
@@ -10,14 +10,14 @@ Installation
 ------------
 
 ```
-npm install @adobe-internal-nui/adobe-io-events-client
+npm install @nui/adobe-io-events-client
 ```
 
 Usage
 -----
 
 ```javascript
-const AdobeIOEventsClient = require('@adobe-internal-nui/adobe-io-events-client');
+const AdobeIOEventsClient = require('@nui/adobe-io-events-client');
 
 // setup using necessary credentials
 const ioEvents = new AdobeIOEventsClient({
