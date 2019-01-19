@@ -42,6 +42,11 @@ return ioEvents.sendEvent({
 
 ```
 
+Journal v2 Consumption Logic
+----------------------------
+
+![](docs/adobeio-journal-v2.png)
+
 Integration YAML
 ----------------
 
