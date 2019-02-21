@@ -24,6 +24,9 @@ const os = require("os");
 const util = require('util');
 const testconfig = require('./testconfig');
 
+const rewire = require('rewire');
+const parseLinkHeader = rewire('../src/events').__get__('parseLinkHeader')
+
 // ---------------------------------------------------
 // helpers
 
@@ -324,6 +327,47 @@ describe('AdobeIOEvents', function() {
             });
         });
     });
+
+    describe('#parseLinkHeader', () => {
+        it('empty', () => {
+            const result = parseLinkHeader('', '');
+            assert.deepStrictEqual(result, {});
+        });
+        it('one absolute link', () => {
+            const result = parseLinkHeader('https://host.com', 
+                '<https://anotherhost.com/path/to/resource>; rel="next"'
+            );
+            assert.deepStrictEqual(result, {
+                next: 'https://anotherhost.com/path/to/resource'
+            });
+        });
+        it('one relative link', () => {
+            const result = parseLinkHeader('https://host.com', 
+                '</path/to/resource>; rel="next"'
+            );
+            assert.deepStrictEqual(result, {
+                next: 'https://host.com/path/to/resource'
+            });
+        });
+        it('two absolute links', () => {
+            const result = parseLinkHeader('https://host.com', 
+                '<https://host1.com/path/to/resource1>; rel="prev", <https://host2.com/path/to/resource2>; rel="next"'
+            );
+            assert.deepStrictEqual(result, {
+                prev: 'https://host1.com/path/to/resource1',
+                next: 'https://host2.com/path/to/resource2'
+            });
+        });
+        it('two relative links', () => {
+            const result = parseLinkHeader('https://host.com', 
+                '</path/to/resource1>; rel="prev", </path/to/resource2>; rel="next"'
+            );
+            assert.deepStrictEqual(result, {
+                prev: 'https://host.com/path/to/resource1',
+                next: 'https://host.com/path/to/resource2'
+            });
+        });
+    })
 
     after(function() {
         // TODO: remove the event provider and all it's event types

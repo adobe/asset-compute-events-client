@@ -42,10 +42,10 @@ return ioEvents.sendEvent({
 
 ```
 
-Journal v2 Consumption Logic
-----------------------------
+Journal v2
+----------
 
-![](docs/adobeio-journal-v2.png)
+The Journal v2 API is an incompatible change. [Journal V2 Data flow and REST API](docs/journalv2.md).
 
 Integration YAML
 ----------------

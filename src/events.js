@@ -20,6 +20,39 @@
 const request = require('request-promise-native');
 // request.debug = true;
 const jsonwebtoken = require('jsonwebtoken');
+const httplinkheader = require('http-link-header');
+
+/**
+ * Parse the Link header
+ * Spec: @{link https://tools.ietf.org/html/rfc5988#section-5}
+ *
+ * @param {String|URL} base URL used to resolve relative uris
+ * @param {String} header Link header value
+ * @returns {Object} Parsed link heeader
+ */
+function parseLinkHeader(base, header) {
+    let result = {};
+    const links = httplinkheader.parse(header);
+    for (const link of links.refs) {
+        result[link.rel] = new URL(link.uri, base).href;
+    }
+    return result;
+}
+
+/**
+ * Parse the Retry-After header
+ * Spec: {@link https://tools.ietf.org/html/rfc7231#section-7.1.3}
+ *
+ * @param {String} header Retry-After header value
+ * @returns Number of milliseconds to sleep until the next call to getEventsFromJournal
+ */
+function parseRetryAfterHeader(header) {
+    if (header.match(/^[0-9]+$/)) {
+        return parseInt(header) * 1000;
+    } else {
+        return Date.parse(header) - Date.now();
+    }
+}
 
 class AdobeIOEvents {
 
@@ -160,6 +193,8 @@ class AdobeIOEvents {
             if (response.statusCode === 200) {
                 return Promise.resolve();
             } else {
+                // 204 No Content status should be considered a failure, it means
+                // that the journal has not been fully created yet. The posted event is lost.
                 return Promise.reject(new Error(`sending event failed with ${response.statusCode} ${response.statusMessage}`));
             }
         });
@@ -262,27 +297,45 @@ class AdobeIOEvents {
         });
     }
 
-
+    /**
+     * @typedef {Object} EventsFromJournalOptions
+     * @property {Boolean} latest Retrieve latest events (optional)
+     * @property {String} seek Retrieve events starting at a relative time, e.g. -PT1H (optional)
+     * @property {Number} limit Maximum number of events to retrieve (optional)
+     */
     /**
      * Get recent events from a journal.
-     * @param {String} journalUrl Complete URL of the journal to read from (required)
-     * @param {Number} pageSize Maximum number of most recdent events to return (optional)
-     * @param {String} from ID of the first event to be returned (optional)
-     * @returns {Promise} with the response json including the events
+     * @param {String} journalUrl URL of the journal or 'next' link to read from (required)
+     * @param {EventsFromJournalOptions} options Query options to send with the URL
+     * @returns {Promise} with the response json includes events and links (if available)
      */
-    getEventsFromJournal(journalUrl, pageSize, from) {
+    getEventsFromJournal(journalUrl, options) {
         return request({
             url: journalUrl,
             headers: {
                 'x-api-key': this.auth.clientId,
                 'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`
+                'Authorization': `Bearer ${this.auth.accessToken}`,
+                'Accept': 'application/vnd.adobecloud.events+json'
             },
-            qs: {
-                pageSize: pageSize,
-                from: from
-            },
+            qs: options,
+            resolveWithFullResponse: true,
             json: true
+        }).then(response => {
+            if ((response.statusCode === 200) || (response.statusCode === 204)) {
+                let result = Object.assign({}, response.body);
+                const linkHeader = response.headers['link'];
+                if (linkHeader) {
+                    result.link = parseLinkHeader(journalUrl, linkHeader);
+                }
+                const retryAfterHeader = response.headers['retry-after'];
+                if (retryAfterHeader) {
+                    result.retryAfter = parseRetryAfterHeader(retryAfterHeader);
+                }
+                return result;
+            } else {
+                throw Error(`get journal events failed with ${response.statusCode} ${response.statusMessage}`);
+            } 
         });
     }
 }
