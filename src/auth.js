@@ -18,7 +18,7 @@
 'use strict';
 
 const fs = require('fs');
-const request = require('request-promise');
+const request = require('request-promise-native');
 const jsonwebtoken = require('jsonwebtoken');
 
 const ADOBE_ID_PRODUCTION_HOST = "https://ims-na1.adobelogin.com";

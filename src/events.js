@@ -17,7 +17,7 @@
 
 'use strict';
 
-const request = require('request-promise');
+const request = require('request-promise-native');
 // request.debug = true;
 const jsonwebtoken = require('jsonwebtoken');
 
