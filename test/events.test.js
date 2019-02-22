@@ -18,10 +18,10 @@
 'use strict';
 
 const AdobeIOEvents = require('../src/events');
+const AdobeIOEventEmitter = require('../src/eventemitter');
 const AdobeAuth = require('../src/auth');
 const assert = require('assert');
 const os = require("os");
-const util = require('util');
 const testconfig = require('./testconfig');
 
 const rewire = require('rewire');
@@ -34,47 +34,6 @@ function getIsoDate(date) {
     return date.getFullYear() + '-' +
             ('0'+ (date.getMonth()+1)).slice(-2) + '-' +
             ('0'+ date.getDate()).slice(-2);
-}
-
-// promise sleep (duration in ms)
-function sleep(duration) {
-    return new Promise(resolve => setTimeout(resolve, duration));
-}
-
-// promise retry (interval in ms, fn must return a promise)
-function retry(maxRetries, interval, fn) {
-    return fn().catch(err => {
-        console.log("        retries left: ", maxRetries);
-        if (maxRetries > 1) {
-            // wait between retries
-            return sleep(interval)
-                // then retry again, but count down the maxRetries
-                .then(() => retry(maxRetries - 1, interval, fn));
-        } else {
-            // max retries hit, stop and fail
-            return Promise.reject(err);
-        }
-    });
-}
-
-function assertEventInJournal(ioEvents, journalUrl, timeout, eventMatcher) {
-    const POLL_INTERVAL = 2000;
-    return retry(timeout/POLL_INTERVAL, POLL_INTERVAL, function() {
-        return ioEvents
-            .getEventsFromJournal(journalUrl)
-            .then(events => {
-                // console.log("        ", util.inspect(events, {showHidden: false, depth: null}));
-                // find matching event using eventMatcher function
-                if (events.events && events.events.some(eventMatcher)) {
-                    console.log("        event found in journal:", util.inspect(events, {showHidden: false, depth: null}));
-                    return Promise.resolve();
-                } else {
-                    return Promise.reject();
-                }
-            });
-    })
-    .then(() => assert(true))
-    .catch(() => assert(false, "event not received within timeout"));
 }
 
 // ---------------------------------------------------
@@ -295,14 +254,16 @@ describe('AdobeIOEvents', function() {
             .then(() => {
                 console.log("        sent event.");
 
-                return assertEventInJournal(
-                    ioEvents,
-                    journalUrl,
-                    DELIVERY_TIMEOUT,
+                return AdobeIOEventEmitter.findEventInJournal(
+                    ioEvents, 
+                    journalUrl, 
+                    DELIVERY_TIMEOUT, 
                     event => event.event.timestamp === timestamp
-                ).then(() => {
+                )
+                .then(() => {
                     console.timeEnd('        send event to journal delivery');
-                });
+                })
+                .catch(() => assert(false, "event not received within timeout"));
             });
         });
 

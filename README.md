@@ -16,11 +16,13 @@ npm install @nui/adobe-io-events-client
 Usage
 -----
 
+### Sending an event
+
 ```javascript
-const AdobeIOEventsClient = require('@nui/adobe-io-events-client');
+const { AdobeIOEvents } = require('@nui/adobe-io-events-client');
 
 // setup using necessary credentials
-const ioEvents = new AdobeIOEventsClient({
+const ioEvents = new AdobeIOEvents({
     // access token from an integration/technical account with I/O Events entitlement
     accessToken: "ey...",
     // organization sending/receiving events
@@ -42,10 +44,31 @@ return ioEvents.sendEvent({
 
 ```
 
+### Receiving events
+
+```javascript
+const { AdobeIOEvents, AdobeIOEventEmitter } = require('@nui/adobe-io-events-client');
+
+// setup using necessary credentials
+const ioEvents = new AdobeIOEvents({
+    // access token from an integration/technical account with I/O Events entitlement
+    accessToken: "ey...",
+});
+
+// receiving events
+const ioEventEmitter = new AdobeIOEventEmitter(ioEvents, 'http://journal-url');
+ioEventEmitter.on('event', (event) => {
+    // handle event
+})
+ioEventEmitter.on('error', (error) => {
+    // report error
+})
+```
+
 Journal v2
 ----------
 
-The Journal v2 API is an incompatible change. [Journal V2 Data flow and REST API](docs/journalv2.md).
+The Journal v2 API is an incompatible change that impacts all clients. We have documented our client implementation and a few notes on the REST API in [Journal V2 Data flow and REST API](docs/journalv2.md).
 
 Integration YAML
 ----------------

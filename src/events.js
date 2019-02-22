@@ -193,8 +193,10 @@ class AdobeIOEvents {
             if (response.statusCode === 200) {
                 return Promise.resolve();
             } else {
-                // 204 No Content status should be considered a failure, it means
-                // that the journal has not been fully created yet. The posted event is lost.
+                // 204 No Content status should be considered a failure by us.
+                // It means that the event was accepted, but there were no registrations interested in 
+                // the event. In this case it means that the journal has not been fully created yet. 
+                // The result is that the posted event is lost.
                 return Promise.reject(new Error(`sending event failed with ${response.statusCode} ${response.statusMessage}`));
             }
         });
@@ -314,7 +316,6 @@ class AdobeIOEvents {
             url: journalUrl,
             headers: {
                 'x-api-key': this.auth.clientId,
-                'x-ims-org-id': this.auth.orgId,
                 'Authorization': `Bearer ${this.auth.accessToken}`,
                 'Accept': 'application/vnd.adobecloud.events+json'
             },
@@ -323,7 +324,7 @@ class AdobeIOEvents {
             json: true
         }).then(response => {
             if ((response.statusCode === 200) || (response.statusCode === 204)) {
-                let result = Object.assign({}, response.body);
+                const result = Object.assign({}, response.body);
                 const linkHeader = response.headers['link'];
                 if (linkHeader) {
                     result.link = parseLinkHeader(journalUrl, linkHeader);

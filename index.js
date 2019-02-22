@@ -19,8 +19,10 @@
 
 const AdobeAuth = require('./src/auth');
 const AdobeIOEvents = require('./src/events');
+const AdobeIOEventEmitter = require('./src/eventemitter');
 
 module.exports = {
     AdobeAuth,
-    AdobeIOEvents
+    AdobeIOEvents,
+    AdobeIOEventEmitter
 };
