@@ -96,7 +96,7 @@ To enhance the bookmarklet, find the [source here](bookmarklet/get-integration-y
 
 ### Manually create YAML
 
-Alternatively, you can manually create the file, as per the example below. Include the technical account info from the integration, the private key you created for this integration, and the `consumerId` and `applicationId` taken from the console.adobe.io URL: `https://console.adobe.io/integrations/{consumerId}/{applicationId}/overview`.
+Alternatively, you can manually create the file, as per the example below. Include the technical account info from the integration, the public and private keys you created for this integration, and the `consumerId` and `applicationId` taken from the console.adobe.io URL: `https://console.adobe.io/integrations/{consumerId}/{applicationId}/overview`.
 
 YAML template:
 
@@ -109,6 +109,12 @@ technicalAccount:
   org:          6EEF747xxxxxxxxxxxxxxxxx@AdobeOrg
   clientId:     1401f9dxxxxxxxxxxxxxxxxxxxxxxxxx
   clientSecret: d34081fc-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  publicKey: |
+    -----BEGIN CERTIFICATE-----
+    abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
+    mnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx
+    ....
+    -----END CERTIFICATE-----
   privateKey: |
     -----BEGIN PRIVATE KEY-----
     abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijkl
