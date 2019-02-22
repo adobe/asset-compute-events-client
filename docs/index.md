@@ -30,13 +30,16 @@ To enhance the bookmarklet, find the [source here](bookmarklet/get-integration-y
 
 ### Manually create YAML
 
-Alternatively, you can manually create the file, as per the example below. Include the technical account info from the integration, the public and private keys you created for this integration, and the `consumerId` and `applicationId` taken from the console.adobe.io URL: `https://console.adobe.io/integrations/{consumerId}/{applicationId}/overview`.
+Alternatively, you can manually create the file, as per the example below. Include the technical account info from the integration, the public and private keys you created for this integration, the metascopes for the services the integration is subscribed to and the `consumerId` and `applicationId` taken from the console.adobe.io URL: `https://console.adobe.io/integrations/{consumerId}/{applicationId}/overview`.
 
 YAML template:
 
 ```
 consumerId:    123456
 applicationId: 99999
+metascopes:
+  - event_receiver_api
+  - ent_adobeio_sdk
 
 technicalAccount:
   id:           053530dxxxxxxxxxxxxxxxxx@techacct.adobe.com
@@ -56,4 +59,3 @@ technicalAccount:
     ....
     -----END PRIVATE KEY-----
 ```
-
