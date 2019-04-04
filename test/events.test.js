@@ -15,6 +15,8 @@
  *  from Adobe Systems Incorporated.
  */
 
+/* eslint-disable prefer-template */
+
 'use strict';
 
 const AdobeIOEvents = require('../src/events');
@@ -109,7 +111,9 @@ describe('AdobeIOEvents', function() {
             return ioEvents.registerEventProvider({
                 id: TEST_PROVIDER_ID,
                 label: TEST_PROVIDER_LABEL,
-                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD
+                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD,
+                metadata: AdobeIOEvents.Metadata.ASSET_COMPUTE,
+                instanceId: TEST_PROVIDER_ID
             })
             .then(() => {
                 assert(true);
@@ -122,13 +126,15 @@ describe('AdobeIOEvents', function() {
                 accessToken: accessToken,
                 orgId: integration.technicalAccount.org,
                 defaults: {
-                    providerId: TEST_PROVIDER_ID
+                    providerId: TEST_PROVIDER_ID,
+                    providerMetadata: AdobeIOEvents.Metadata.ASSET_COMPUTE
                 }
             });
 
             return ioEvents2.registerEventProvider({
                 label: TEST_PROVIDER_LABEL,
-                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD
+                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD,
+                instanceId: TEST_PROVIDER_ID
             })
             .then(() => {
                 assert(true);
@@ -156,7 +162,8 @@ describe('AdobeIOEvents', function() {
                 accessToken: accessToken,
                 orgId: integration.technicalAccount.org,
                 defaults: {
-                    providerId: TEST_PROVIDER_ID
+                    providerId: TEST_PROVIDER_ID,
+                    providerMetadata: AdobeIOEvents.Metadata.ASSET_COMPUTE
                 }
             });
 
@@ -204,7 +211,9 @@ describe('AdobeIOEvents', function() {
             return ioEvents.registerEventProvider({
                 id: TEST_PROVIDER_ID,
                 label: TEST_PROVIDER_LABEL,
-                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD
+                grouping: AdobeIOEvents.Groups.MARKETING_CLOUD,
+                metadata: AdobeIOEvents.Metadata.ASSET_COMPUTE,
+                instanceId: TEST_PROVIDER_ID
             })
             .then(() => {
                 return ioEvents.registerEventType({
@@ -273,7 +282,8 @@ describe('AdobeIOEvents', function() {
                 accessToken: accessToken,
                 orgId: integration.technicalAccount.org,
                 defaults: {
-                    providerId: TEST_PROVIDER_ID
+                    providerId: TEST_PROVIDER_ID,
+                    providerMetadata: AdobeIOEvents.Metadata.ASSET_COMPUTE
                 }
             });
 

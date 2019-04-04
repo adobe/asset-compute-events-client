@@ -15,6 +15,8 @@
  *  from Adobe Systems Incorporated.
  */
 
+/* eslint-disable dot-notation */
+
 'use strict';
 
 const request = require('request-promise-native');
@@ -31,7 +33,7 @@ const httplinkheader = require('http-link-header');
  * @returns {Object} Parsed link heeader
  */
 function parseLinkHeader(base, header) {
-    let result = {};
+    const result = {};
     const links = httplinkheader.parse(header);
     for (const link of links.refs) {
         result[link.rel] = new URL(link.uri, base).href;
@@ -59,6 +61,7 @@ class AdobeIOEvents {
     /**
      * @typedef {Object} IoEventsOptionsDefaults
      * @property {String} providerId Default provider ID to use in API calls (optional, no spaces)
+     * @property {String} providerMetadata Default provider metadata @see {@link AdobeIOEvents.Metadata}
      * @property {String} consumerId short organization ID from console.adobe.io (not the IMS org ID), example: 105979
      * @property {String} applicationId integration ID from console.adobe.io, example: 47334
      */
@@ -92,7 +95,9 @@ class AdobeIOEvents {
      * @typedef {Object} EventProvider
      * @property {String} id Unique id of the provider (no spaces). If not set will use the `options.providerId` passed in the constructor.
      * @property {String} label Label for the provider shown in UIs (required)
-     * @property {String} grouping Group under which this provider should appaear in UIs (required)
+     * @property {String} grouping Group under which this provider should appear in UIs (required)
+     * @property {String} metadata Provider metadata, @see {@link AdobeIOEvents.Metadata} (required)
+     * @property {String} instanceId Unique instance identifier (required when metadata is set to acs, aem, or asset_compute)
      */
     /**
      * Register a new event provider or update an existing one.
@@ -112,7 +117,9 @@ class AdobeIOEvents {
             body: {
                 provider: provider.id || this.defaults.providerId,
                 grouping: provider.grouping,
-                label: provider.label
+                label: provider.label,
+                provider_metadata: provider.metadata || this.defaults.providerMetadata,
+                instance_id: provider.instanceId
             }
         });
     }
@@ -341,11 +348,29 @@ class AdobeIOEvents {
     }
 }
 
+/** Known metadata values for event providers */
+AdobeIOEvents.Metadata = {
+    ACS: "acs",
+    AEM: "aem",
+    ASSET_COMPUTE: "asset_compute",
+    CCSTORAGE: "ccstorage",
+    CLOUDMANAGER: "cloudmanager",
+    PROFILE: "profile",
+    STOCK: "stock",
+    TRIGGERS: "triggers",
+    XD: "xd",
+    XD_ANNOTATIONS: "xd_annotations",
+    AEP_STREAMING_SERVICES: "aep_streaming_services",
+    GDPR_EVENTS: "gdpr_events",
+    TEST: "test"
+}
+
 /** Known groups for event providers */
 AdobeIOEvents.Groups = {
     MARKETING_CLOUD: "Marketing Cloud",
     DOCUMENT_CLOUD: "Document Cloud",
-    CREATIVE_CLOUD: "Creative Cloud"
+    CREATIVE_CLOUD: "Creative Cloud",
+    EXPERIENCE_PLATFORM: "Experience Platform"
 };
 
 /**
