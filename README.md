@@ -70,6 +70,25 @@ Journal v2
 
 The Journal v2 API is an incompatible change that impacts all clients. We have documented our client implementation and a few notes on the REST API in [Journal V2 Data flow and REST API](docs/journalv2.md).
 
+APIs used
+---------
+
+I/O Events
+* [Public documentation](https://www.adobe.io/apis/cloudplatform/events/documentation.html)
+
+I/O Events CSM (Channel Subscription Management) API
+* [Swagger API docs](https://git.corp.adobe.com/pages/adobeio/channel-subscription-management/)
+* [CSM in API gateway directory (stage)](https://admin-stage.adobe.io/publisher/directory/461/services/692)
+* [Source code](https://git.corp.adobe.com/adobeio/channel-subscription-management) - [HTTP endpoint CSMResource.java](https://git.corp.adobe.com/adobeio/channel-subscription-management/blob/master/src/main/java/com/adobe/csm/resource/CSMResource.java)
+* [Wiki page with some info](https://wiki.corp.adobe.com/pages/viewpage.action?pageId=1313757010)
+
+Event ingress (send events) API
+* [Swagger API docs](https://git.corp.adobe.com/pages/adobeio/channel-subscription-management/?url=https://eg-ingress-stage.adobe.io/swagger.json?api_key=adobe_io_events_swagger)
+
+Console API
+* [Swagger API docs](https://git.corp.adobe.com/pages/adobe-apis/api-mgmt-docs/)
+
+
 Integration YAML
 ----------------
 
