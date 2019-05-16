@@ -322,6 +322,7 @@ class AdobeIOEvents {
         return request({
             url: journalUrl,
             headers: {
+                'x-ims-org-id': this.auth.orgId,
                 'x-api-key': this.auth.clientId,
                 'Authorization': `Bearer ${this.auth.accessToken}`,
                 'Accept': 'application/vnd.adobecloud.events+json'
