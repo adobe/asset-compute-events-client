@@ -24,6 +24,20 @@ const request = require('request-promise-native');
 const jsonwebtoken = require('jsonwebtoken');
 const httplinkheader = require('http-link-header');
 
+const CSM_HOST = {
+    prod: "https://csm.adobe.io",
+    stage: "https://csm-stage.adobe.io"
+};
+const INGRESS_HOST = {
+    prod: "https://eg-ingress.adobe.io",
+    stage: "https://eg-ingress-stage.adobe.io"
+};
+const IO_API_HOST = {
+    prod: "https://api.adobe.io",
+    stage: "https://api-stage.adobe.io"
+};
+
+
 /**
  * Parse the Link header
  * Spec: @{link https://tools.ietf.org/html/rfc5988#section-5}
@@ -89,6 +103,7 @@ class AdobeIOEvents {
             clientId: jwt.client_id
         };
         this.defaults = options.defaults;
+        this.env = jwt.as === "ims-na1-stg1" ? "stage" : "prod";
     }
 
     /**
@@ -106,7 +121,7 @@ class AdobeIOEvents {
      */
     registerEventProvider(provider) {
         return request.post({
-            url: 'https://csm.adobe.io/csm/events/provider',
+            url: `${CSM_HOST[this.env]}/csm/events/provider`,
             headers: {
                 // 'X-Adobe-IO-AEM-Version': '6.4.0',
                 // 'X-Adobe-Product': 'AEM',
@@ -131,7 +146,7 @@ class AdobeIOEvents {
      */
     deleteEventProvider(providerId) {
         return request.delete({
-            url: `https://csm.adobe.io/csm/events/provider/${providerId}`,
+            url: `${CSM_HOST[this.env]}/csm/events/provider/${providerId}`,
             headers: {
                 'x-ims-org-id': this.auth.orgId,
                 'Authorization': `Bearer ${this.auth.accessToken}`
@@ -153,7 +168,7 @@ class AdobeIOEvents {
      */
     registerEventType(eventType) {
         return request.post({
-            url: 'https://csm.adobe.io/csm/events/metadata',
+            url: `${CSM_HOST[this.env]}/csm/events/metadata`,
             headers: {
                 'x-ims-org-id': this.auth.orgId,
                 'Authorization': `Bearer ${this.auth.accessToken}`
@@ -181,7 +196,7 @@ class AdobeIOEvents {
      */
     sendEvent(event) {
         return request.post({
-            url: 'https://eg-ingress.adobe.io/api/events',
+            url: `${INGRESS_HOST[this.env]}/api/events`,
             headers: {
                 'x-ims-org-id': this.auth.orgId,
                 'x-api-key': this.auth.clientId,
@@ -221,7 +236,7 @@ class AdobeIOEvents {
         applicationId = applicationId || this.defaults.applicationId;
 
         return request({
-            url: `https://api.adobe.io/events/organizations/${consumerId}/integrations/${applicationId}/registrations`,
+            url: `${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`,
             headers: {
                 'x-api-key': this.auth.clientId,
                 'x-ims-org-id': this.auth.orgId,
@@ -272,7 +287,7 @@ class AdobeIOEvents {
         const applicationId = journal.applicationId || this.defaults.applicationId;
 
         return request.post({
-            url: `https://api.adobe.io/events/organizations/${consumerId}/integrations/${applicationId}/registrations`,
+            url: `${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`,
             headers: {
                 'x-api-key': this.auth.clientId,
                 'x-ims-org-id': this.auth.orgId,
@@ -293,7 +308,7 @@ class AdobeIOEvents {
             return Promise.reject("Cannot invoke ioEvents.deleteJournal() because special API key is not set as environment variable: DELETE_JOURNAL_API_KEY");
         }
         return request.delete({
-            url: `https://csm.adobe.io/csm/webhooks/${this.auth.clientId}/${registrationId}`,
+            url: `${CSM_HOST[this.env]}/csm/webhooks/${this.auth.clientId}/${registrationId}`,
             headers: {
                 'x-ims-org-id': this.auth.orgId,
 
