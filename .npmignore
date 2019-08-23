@@ -1,0 +1,7 @@
+*.tgz
+bookmarklet/
+docs/
+.serverless
+serverless.yml
+.webpack
+build
