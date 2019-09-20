@@ -264,9 +264,9 @@ describe('AdobeIOEvents', function() {
                 console.log("        sent event.");
 
                 return AdobeIOEventEmitter.findEventInJournal(
-                    ioEvents, 
-                    journalUrl, 
-                    DELIVERY_TIMEOUT, 
+                    ioEvents,
+                    journalUrl,
+                    DELIVERY_TIMEOUT,
                     event => event.event.timestamp === timestamp
                 )
                 .then(() => {
@@ -305,7 +305,7 @@ describe('AdobeIOEvents', function() {
             assert.deepStrictEqual(result, {});
         });
         it('one absolute link', () => {
-            const result = parseLinkHeader('https://host.com', 
+            const result = parseLinkHeader('https://host.com',
                 '<https://anotherhost.com/path/to/resource>; rel="next"'
             );
             assert.deepStrictEqual(result, {
@@ -313,7 +313,7 @@ describe('AdobeIOEvents', function() {
             });
         });
         it('one relative link', () => {
-            const result = parseLinkHeader('https://host.com', 
+            const result = parseLinkHeader('https://host.com',
                 '</path/to/resource>; rel="next"'
             );
             assert.deepStrictEqual(result, {
@@ -321,7 +321,7 @@ describe('AdobeIOEvents', function() {
             });
         });
         it('two absolute links', () => {
-            const result = parseLinkHeader('https://host.com', 
+            const result = parseLinkHeader('https://host.com',
                 '<https://host1.com/path/to/resource1>; rel="prev", <https://host2.com/path/to/resource2>; rel="next"'
             );
             assert.deepStrictEqual(result, {
@@ -330,7 +330,7 @@ describe('AdobeIOEvents', function() {
             });
         });
         it('two relative links', () => {
-            const result = parseLinkHeader('https://host.com', 
+            const result = parseLinkHeader('https://host.com',
                 '</path/to/resource1>; rel="prev", </path/to/resource2>; rel="next"'
             );
             assert.deepStrictEqual(result, {

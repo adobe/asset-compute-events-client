@@ -19,10 +19,11 @@
 
 'use strict';
 
-const request = require('request-promise-native');
-// request.debug = true;
+const fetch = require('fetch-retry');
 const jsonwebtoken = require('jsonwebtoken');
 const httplinkheader = require('http-link-header');
+const util = require('util');
+const sleep = util.promisify(setTimeout); // sleep in ms
 
 const CSM_HOST = {
     prod: "https://csm.adobe.io",
@@ -36,6 +37,9 @@ const IO_API_HOST = {
     prod: "https://api.adobe.io",
     stage: "https://api-stage.adobe.io"
 };
+
+const DEFAULT_MS_TO_WAIT = 100;
+const DEFAULT_MAX_SECONDS_TO_TRY = ( (process.env.__OW_DEADLINE - Date.now()) / 1000 )|| 60;
 
 
 /**
@@ -68,6 +72,14 @@ function parseRetryAfterHeader(header) {
     } else {
         return Date.parse(header) - Date.now();
     }
+}
+
+// Fetch does not automatically reject responses with failed HTTP error codes
+function handleFetchErrors(response) {
+    if (!response.ok) {
+        throw Error(response.statusText);
+    }
+    return response;
 }
 
 class AdobeIOEvents {
@@ -119,24 +131,26 @@ class AdobeIOEvents {
      * @param {EventProvider} provider The event provider to register
      * @returns {Promise}
      */
-    registerEventProvider(provider) {
-        return request.post({
-            url: `${CSM_HOST[this.env]}/csm/events/provider`,
+    async registerEventProvider(provider) {
+        const url = `${CSM_HOST[this.env]}/csm/events/provider`;
+        const response = await fetch(url, {
+            method: 'POST',
             headers: {
                 // 'X-Adobe-IO-AEM-Version': '6.4.0',
                 // 'X-Adobe-Product': 'AEM',
                 'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`
+                'Authorization': `Bearer ${this.auth.accessToken}`,
+                'Content-Type': 'application/json',
             },
-            json: true,
-            body: {
+            body: JSON.stringify({
                 provider: provider.id || this.defaults.providerId,
                 grouping: provider.grouping,
                 label: provider.label,
                 provider_metadata: provider.metadata || this.defaults.providerMetadata,
                 instance_id: provider.instanceId
-            }
+            })
         });
+        return handleFetchErrors(response);
     }
 
     /**
@@ -144,14 +158,16 @@ class AdobeIOEvents {
      * @param {String} providerId the id of the event provider to delete
      * @returns {Promise}
      */
-    deleteEventProvider(providerId) {
-        return request.delete({
-            url: `${CSM_HOST[this.env]}/csm/events/provider/${providerId}`,
+    async deleteEventProvider(providerId) {
+        const url = `${CSM_HOST[this.env]}/csm/events/provider/${providerId}`;
+        const response = await fetch(url, {
+            method: 'DELETE',
             headers: {
                 'x-ims-org-id': this.auth.orgId,
                 'Authorization': `Bearer ${this.auth.accessToken}`
             }
-        });
+        })
+        return handleFetchErrors(response);
     }
 
     /**
@@ -166,21 +182,23 @@ class AdobeIOEvents {
      * @param {EventType} eventType The event type to register
      * @returns {Promise}
      */
-    registerEventType(eventType) {
-        return request.post({
-            url: `${CSM_HOST[this.env]}/csm/events/metadata`,
+    async registerEventType(eventType) {
+        const url =`${CSM_HOST[this.env]}/csm/events/metadata`;
+        const response = await fetch(url, {
+            method: 'POST',
             headers: {
                 'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`
+                'Authorization': `Bearer ${this.auth.accessToken}`,
+                'Content-Type': 'application/json'
             },
-            json: true,
-            body: {
+            body: JSON.stringify({
                 provider: eventType.provider || this.defaults.providerId,
                 event_code: eventType.code,
                 label: eventType.label,
                 description: eventType.description
-            }
-        });
+            })
+        })
+        return handleFetchErrors(response);
     }
 
     /**
@@ -192,36 +210,52 @@ class AdobeIOEvents {
     /**
      * Send an event
      * @param {Event} event The event to send
+     * @param {Object} retry Object containing { `retryIntervalMillis`: <time between retries>, `maxSeconds`: <time retrying till error> }
+     *                       If set to false, retry functionality will be disabled. If not set, it will use the default times
      * @returns {Promise}
      */
-    sendEvent(event) {
-        return request.post({
-            url: `${INGRESS_HOST[this.env]}/api/events`,
+    async sendEvent(event, retry=true) {
+        const startTime = Date.now();
+        const url = `${INGRESS_HOST[this.env]}/api/events`;
+
+        const maxSeconds = (retry && retry.maxSeconds) || DEFAULT_MAX_SECONDS_TO_TRY;
+        let retryIntervalMillis = (retry && retry.retryIntervalMillis) || DEFAULT_MS_TO_WAIT;
+
+        const response = await fetch(url, {
+            method: 'POST',
             headers: {
+                'Content-Type': 'application/json',
                 'x-ims-org-id': this.auth.orgId,
                 'x-api-key': this.auth.clientId,
                 'Authorization': `Bearer ${this.auth.accessToken}`
             },
-            json: {
+            body: JSON.stringify({
                 user_guid: this.auth.orgId,
                 provider_id: event.provider || this.defaults.providerId,
                 event_code: event.code,
                 event: Buffer.from(JSON.stringify(event.payload || {})).toString('base64')
+            }),
+            retryOn: function(attempt, error, response) {
+                const secondsWaited = ( Date.now() - startTime) / 1000.0;
+                if (retry && (secondsWaited < maxSeconds) && (error !== null || response.status >= 400) ) {
+                    const msg = `Retrying after attempt number ${attempt + 1} and waiting ${secondsWaited} seconds to send event ${event} failed: ${response.statusText}, ${response.status}`;
+                    console.error(msg);
+                    return true;
+                }
+                return false;
             },
-            resolveWithFullResponse: true
-        }).then(response => {
-            // console.log(response.statusCode, response.statusMessage);
-            // console.log(response.headers);
-            if (response.statusCode === 200) {
-                return Promise.resolve();
-            } else {
-                // 204 No Content status should be considered a failure by us.
-                // It means that the event was accepted, but there were no registrations interested in 
-                // the event. In this case it means that the journal has not been fully created yet. 
-                // The result is that the posted event is lost.
-                return Promise.reject(new Error(`sending event failed with ${response.statusCode} ${response.statusMessage}`));
-            }
-        });
+            retryDelay: attempt => (retryIntervalMillis *= 2)
+        })
+        if (response.status !== 200) {
+            // If retry is disabled then anything other than 200 is considered an error
+
+            // 204 No Content status should be considered a failure by us.
+            // It means that the event was accepted, but there were no registrations interested in
+            // the event. In this case it means that the journal has not been fully created yet.
+            // The result is that the posted event is lost.
+            console.log(`sending event failed with ${response.status} ${response.statusText}`);
+            throw Error(response.statusText);
+        }
     }
 
     /**
@@ -231,19 +265,21 @@ class AdobeIOEvents {
      * @property {String} applicationId integration ID from console.adobe.io, example: 47334
      * @returns {Promise}
      */
-    listConsumerRegistrations(consumerId, applicationId) {
+    async listConsumerRegistrations(consumerId, applicationId) {
         consumerId = consumerId || this.defaults.consumerId;
         applicationId = applicationId || this.defaults.applicationId;
 
-        return request({
-            url: `${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`,
+        const url = `${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`;
+
+        const response = await fetch(url, {
             headers: {
                 'x-api-key': this.auth.clientId,
                 'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`
-            },
-            json: true
-        });
+                'Authorization': `Bearer ${this.auth.accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        return handleFetchErrors(response);
     }
 
     /**
@@ -260,7 +296,7 @@ class AdobeIOEvents {
      * @param {Journal} journal The journal to create
      * @returns {Promise}
      */
-    createJournal(journal) {
+    async createJournal(journal) {
         const body =   {
             client_id: this.auth.clientId,
             name: journal.name,
@@ -286,16 +322,18 @@ class AdobeIOEvents {
         const consumerId = journal.consumerId || this.defaults.consumerId;
         const applicationId = journal.applicationId || this.defaults.applicationId;
 
-        return request.post({
-            url: `${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`,
+        const url =`${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`;
+        const response = await fetch(url, {
+            method: 'POST',
             headers: {
                 'x-api-key': this.auth.clientId,
                 'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`
+                'Authorization': `Bearer ${this.auth.accessToken}`,
+                'Content-Type': 'application/json'
             },
-            json: true,
-            body: body
-        });
+            body: JSON.stringify(body)
+        })
+        return handleFetchErrors(response).json();
     }
 
     /**
@@ -303,22 +341,24 @@ class AdobeIOEvents {
      * @param {String} registrationId the id of the event listener registration to delete
      * @returns {Promise}
      */
-    deleteJournal(registrationId) {
+    async deleteJournal(registrationId) {
         if (process.env.DELETE_JOURNAL_API_KEY === undefined) {
             return Promise.reject("Cannot invoke ioEvents.deleteJournal() because special API key is not set as environment variable: DELETE_JOURNAL_API_KEY");
         }
-        return request.delete({
-            url: `${CSM_HOST[this.env]}/csm/webhooks/${this.auth.clientId}/${registrationId}`,
+
+        const url = `${CSM_HOST[this.env]}/csm/webhooks/${this.auth.clientId}/${registrationId}`;
+        const response = await fetch(url, {
+            method: 'DELETE',
             headers: {
                 'x-ims-org-id': this.auth.orgId,
-
                 'x-api-key': process.env.DELETE_JOURNAL_API_KEY,
-
                 'x-ams-consumer-id': this.defaults.consumerId,
                 'x-ams-application-id': this.defaults.applicationId,
-                'Authorization': `Bearer ${this.auth.accessToken}`
+                'Authorization': `Bearer ${this.auth.accessToken}`,
+                'Content-Type': 'application/json'
             }
-        });
+        })
+        return handleFetchErrors(response);
     }
 
     /**
@@ -333,34 +373,35 @@ class AdobeIOEvents {
      * @param {EventsFromJournalOptions} options Query options to send with the URL
      * @returns {Promise} with the response json includes events and links (if available)
      */
-    getEventsFromJournal(journalUrl, options) {
-        return request({
-            url: journalUrl,
+    async getEventsFromJournal(journalUrl, options) {
+        const response = await fetch(journalUrl, {
             headers: {
-                'x-ims-org-id': this.auth.orgId,
                 'x-api-key': this.auth.clientId,
+                'x-ims-org-id': this.auth.orgId,
                 'Authorization': `Bearer ${this.auth.accessToken}`,
+                'Content-Type': 'application/json',
                 'Accept': 'application/vnd.adobecloud.events+json'
             },
             qs: options,
             resolveWithFullResponse: true,
-            json: true
-        }).then(response => {
-            if ((response.statusCode === 200) || (response.statusCode === 204)) {
-                const result = Object.assign({}, response.body);
-                const linkHeader = response.headers['link'];
-                if (linkHeader) {
-                    result.link = parseLinkHeader(journalUrl, linkHeader);
-                }
-                const retryAfterHeader = response.headers['retry-after'];
-                if (retryAfterHeader) {
-                    result.retryAfter = parseRetryAfterHeader(retryAfterHeader);
-                }
-                return result;
-            } else {
-                throw Error(`get journal events failed with ${response.statusCode} ${response.statusMessage}`);
-            } 
-        });
+            retries: 0
+        })
+
+        if ((response.status === 200) || (response.status === 204)) {
+            const resultBody = await ((response.status === 200)? response.json():{});
+            const result = Object.assign({}, resultBody);
+            const linkHeader = response.headers._headers.link;
+            const retryAfterHeader = response.headers._headers['retry-after'];
+            if (linkHeader) {
+                result.link = parseLinkHeader(journalUrl, linkHeader[0]);
+            }
+            if (retryAfterHeader) {
+                result.retryAfter = parseRetryAfterHeader(retryAfterHeader[0]);
+            }
+            return result;
+        } else {
+            throw Error(`get journal events failed with ${response.status} ${response.statusText}`);
+        }
     }
 }
 

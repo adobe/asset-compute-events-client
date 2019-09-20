@@ -71,13 +71,13 @@ class AdobeIOEventEmitter extends EventEmitter {
      */
     /**
      * Find an event in the journal
-     * 
+     *
      * @param {AdobeIOEvents} ioEvents AdobeIOEvents instance
      * @param {String} journalUrl Complete URL of the journal
-     * @param {Number} timeout Amount of time to wait until event is found (ms) 
-     * @param {EventPredicate} predicate 
+     * @param {Number} timeout Amount of time to wait until event is found (ms)
+     * @param {EventPredicate} predicate
      * @returns {Promise} resolves to event that matched predicate
-     */    
+     */
     static findEventInJournal(ioEvents, journalUrl, timeout, predicate) {
         const endTime = Date.now() + timeout;
         return new Promise((resolve, reject) => {
@@ -111,8 +111,8 @@ class AdobeIOEventEmitter extends EventEmitter {
      * @property {Number} interval Default interval at which to poll I/O events (optional)
      */
     /**
-     * Construct and start an Adobe I/O event emitter. 
-     * 
+     * Construct and start an Adobe I/O event emitter.
+     *
      * @param {AdobeIOEvents} ioEvents AdobeIOEvents instance
      * @param {String} journalUrl Complete URL of the journal
      * @param {AdobeIOEventEmitterOptions} options Query options to send with the URL
@@ -131,7 +131,7 @@ class AdobeIOEventEmitter extends EventEmitter {
 
     /**
      * Stop the emitter
-     * 
+     *
      * @returns {Promise} resolved when emitter finishes.
      */
     stop() {
@@ -158,7 +158,7 @@ class AdobeIOEventEmitter extends EventEmitter {
             })
             .then(response => {
                 if (!response.events && this.restart) {
-                    // TODO: The validate API has not been implemented yet by the I/O events team. 
+                    // TODO: The validate API has not been implemented yet by the I/O events team.
                 }
                 return response;
             })
@@ -166,7 +166,7 @@ class AdobeIOEventEmitter extends EventEmitter {
                 this.next = response.link.next;
                 this.restart = null;
                 if (response.events) {
-                    // emit each event, issue another poll() immediately 
+                    // emit each event, issue another poll() immediately
                     // since more events may be pending
                     for (const event of response.events) {
                         this.emit("event", event);
@@ -179,11 +179,11 @@ class AdobeIOEventEmitter extends EventEmitter {
             })
             .then(timeout => {
                 if (this.stopCallback) {
-                    // emit is synchronous, make sure to not issue another timeout/immediate if any 
+                    // emit is synchronous, make sure to not issue another timeout/immediate if any
                     // listener called stop() while handling the emitted events
                     this.stopCallback();
                 } else if (timeout === 0) {
-                    setImmediate(self => self.poll(), this); 
+                    setImmediate(self => self.poll(), this);
                 } else {
                     setTimeout(self => self.poll(), timeout, this);
                 }

@@ -18,8 +18,9 @@
 'use strict';
 
 const fs = require('fs');
-const request = require('request-promise-native');
+const fetch = require('fetch-retry');
 const jsonwebtoken = require('jsonwebtoken');
+const FormData = require('form-data');
 
 const ADOBE_ID_PRODUCTION_HOST = "https://ims-na1.adobelogin.com";
 
@@ -53,7 +54,7 @@ class AdobeAuth {
      * @param {Array} metaScopes Meta scopes to use, passed as string array
      * @returns {Promise}
      */
-    createAccessToken(technicalAccount, metaScopes) {
+    async createAccessToken(technicalAccount, metaScopes) {
         const adobeLoginHost = this.config.adobeLoginHost || ADOBE_ID_PRODUCTION_HOST;
 
         // 1. collect full metascopes
@@ -77,16 +78,24 @@ class AdobeAuth {
         })
 
         // 3. exchange against access token
-        return request.post({
-            url: `${adobeLoginHost}/ims/exchange/v1/jwt`,
-            form: {
-                client_id: technicalAccount.clientId,
-                client_secret: technicalAccount.clientSecret,
-                jwt_token: jwt
-            }
-        }).then(response => {
-            return JSON.parse(response).access_token;
-        });
+        const url = `${adobeLoginHost}/ims/exchange/v1/jwt`;
+
+        const formData = new FormData();
+        formData.append('client_id', technicalAccount.clientId);
+        formData.append('client_secret', technicalAccount.clientSecret);
+        formData.append('jwt_token', jwt);
+
+        let response = await fetch(url, {
+            method: 'POST',
+            headers:formData.getHeaders(),
+            body: formData
+        })
+        if (!response.ok) {
+            throw Error(`errorCode:${response.status}, message:${response.statusText}`);
+        }
+        response = await response.json();
+        return response.access_token;
+
     }
 }
 
