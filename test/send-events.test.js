@@ -100,4 +100,5 @@ it('should error by timeout after 3 seconds', async function() {
         error = true;
         assert(error);
     }
+    mockery.disable();
 });
