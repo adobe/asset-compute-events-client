@@ -237,7 +237,7 @@ class AdobeIOEvents {
             }),
             retryOn: function(attempt, error, response) {
                 const secondsWaited = ( Date.now() - startTime) / 1000.0;
-                if (retry && (secondsWaited < maxSeconds) && (error !== null || response.status >= 400) ) {
+                if ((secondsWaited < maxSeconds) && (error !== null || ( response.status >= 400 ))) {
                     const msg = `Retrying after attempt number ${attempt + 1} and waiting ${secondsWaited} seconds to send event ${event} failed: ${response.statusText}, ${response.status}`;
                     console.error(msg);
                     return true;
