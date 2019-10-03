@@ -150,7 +150,7 @@ class AdobeIOEvents {
                 instance_id: provider.instanceId
             })
         });
-        return handleFetchErrors(response);
+        return handleFetchErrors(response).json();
     }
 
     /**
@@ -198,7 +198,7 @@ class AdobeIOEvents {
                 description: eventType.description
             })
         })
-        return handleFetchErrors(response);
+        return handleFetchErrors(response).json();
     }
 
     /**
@@ -279,7 +279,7 @@ class AdobeIOEvents {
                 'Content-Type': 'application/json'
             }
         })
-        return handleFetchErrors(response);
+        return handleFetchErrors(response).json();
     }
 
     /**
