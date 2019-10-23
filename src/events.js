@@ -39,7 +39,7 @@ const IO_API_HOST = {
 };
 
 const DEFAULT_MS_TO_WAIT = 100;
-const DEFAULT_MAX_SECONDS_TO_TRY = ( (process.env.__OW_DEADLINE - Date.now()) / 1000 )|| 60;
+const DEFAULT_MAX_SECONDS_TO_TRY = 60;
 
 
 /**
@@ -74,12 +74,66 @@ function parseRetryAfterHeader(header) {
     }
 }
 
-// Fetch does not automatically reject responses with failed HTTP error codes
+/**
+ * Catch all fetch errors that are not returned as errors
+ * @param {Object} response fetch responsde
+ * @returns {Object} returns either the ok response or an error
+ */
 function handleFetchErrors(response) {
     if (!response.ok) {
-        throw Error(response.statusText);
+        throw new Error(`${response.status} ${response.statusText}`);
     }
     return response;
+}
+
+
+/**
+ * Retry Function used in `fetch-retry`
+ * @param {Date} startTime start time using `Date.now()`
+ * @param {String} retryIntervalMillis time between retries in milliseconds
+ * @param {String} maxSeconds time to retry until throwing an error
+ * @param {Boolean} retry whether or not retry is enabled
+ * @param {Boolean} retryAllErrors whether or not to retry on all http error codes or just >500
+ * @returns {Object} an object containing two methods: retryOn and retryDelay
+ */
+function retryFunction(retryOptions) {
+    return {
+        retryOn: function(attempt, error, response) {
+            if (retryOptions) {
+                const secondsWaited = ( Date.now() - retryOptions.startTime) / 1000.0;
+                const secondsToWait = (retryOptions.retryIntervalMillis / 1000) + secondsWaited;
+                if ((secondsToWait < retryOptions.maxSeconds) && (error !== null || response.status >= 500 || ( retryOptions.retryAllErrors && (!response.ok) )) ) {
+                    const msg = `Retrying after attempt ${attempt + 1} and waiting ${secondsWaited} seconds. failed: ${error? error: response.statusText}`;
+                    console.error(msg);
+                    return true;
+                }
+            }
+            return false;
+        },
+        retryDelay: attempt => (retryOptions.retryIntervalMillis *= 2)
+    }
+}
+
+/**
+ * Retry Function used in `fetch-retry`
+ * @param {Date} startTime start time using `Date.now()`
+ * @param {String} retryIntervalMillis time between retries in milliseconds
+ * @param {String} maxSeconds time to retry until throwing an error
+ * @param {Boolean} retry whether or not retry is enabled
+ * @param {Boolean} retryAllErrors whether or not to retry on all http error codes or just >500
+ * @returns {Object} an object containing two methods: retryOn and retryDelay
+ */
+function retryInit(retryOptions, retryAllErrors=false) {
+    if (retryOptions) {
+        const startTime = Date.now();
+        return {
+            startTime: startTime,
+            maxSeconds: (retryOptions && retryOptions.maxSeconds) || ( (process.env.__OW_DEADLINE - startTime) / 1000 ) || DEFAULT_MAX_SECONDS_TO_TRY,
+            retryIntervalMillis: (retryOptions && retryOptions.retryIntervalMillis) || DEFAULT_MS_TO_WAIT,
+            retryAllErrors: retryAllErrors
+        }
+    }
+    return false
 }
 
 class AdobeIOEvents {
@@ -127,29 +181,40 @@ class AdobeIOEvents {
      * @property {String} instanceId Unique instance identifier (required when metadata is set to acs, aem, or asset_compute)
      */
     /**
+     * @typedef {Object} RetryOptions
+     * @property {String} retryIntervalMillis time between retries in milliseconds
+     * @property {String} maxSeconds time to retry until throwing an error
+     */
+    /**
      * Register a new event provider or update an existing one.
      * @param {EventProvider} provider The event provider to register
+     * @param {RetryOptions} retryOptions retry options. If set to false, retry functionality will be disabled. If not set, it will use the default times
      * @returns {Promise}
      */
-    async registerEventProvider(provider) {
+    async registerEventProvider(provider, retryOptions=true) {
         const url = `${CSM_HOST[this.env]}/csm/events/provider`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                // 'X-Adobe-IO-AEM-Version': '6.4.0',
-                // 'X-Adobe-Product': 'AEM',
-                'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                provider: provider.id || this.defaults.providerId,
-                grouping: provider.grouping,
-                label: provider.label,
-                provider_metadata: provider.metadata || this.defaults.providerMetadata,
-                instance_id: provider.instanceId
-            })
-        });
+
+        retryOptions = retryInit(retryOptions);
+
+        const response = await fetch(url,
+            Object.assign({
+                method: 'POST',
+                headers: {
+                    // 'X-Adobe-IO-AEM-Version': '6.4.0',
+                    // 'X-Adobe-Product': 'AEM',
+                    'x-ims-org-id': this.auth.orgId,
+                    'Authorization': `Bearer ${this.auth.accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    provider: provider.id || this.defaults.providerId,
+                    grouping: provider.grouping,
+                    label: provider.label,
+                    provider_metadata: provider.metadata || this.defaults.providerMetadata,
+                    instance_id: provider.instanceId
+                })
+            }, retryFunction(retryOptions)
+        ));
         return handleFetchErrors(response).json();
     }
 
@@ -180,24 +245,30 @@ class AdobeIOEvents {
     /**
      * Register a new event type or update an existing one.
      * @param {EventType} eventType The event type to register
+     * @param {RetryOptions} retryOptions retry options. If set to false, retry functionality will be disabled. If not set, it will use the default times
      * @returns {Promise}
      */
-    async registerEventType(eventType) {
+    async registerEventType(eventType, retryOptions=true) {
         const url =`${CSM_HOST[this.env]}/csm/events/metadata`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                provider: eventType.provider || this.defaults.providerId,
-                event_code: eventType.code,
-                label: eventType.label,
-                description: eventType.description
-            })
-        })
+
+        retryOptions = retryInit(retryOptions);
+
+        const response = await fetch(url,
+            Object.assign({
+                method: 'POST',
+                headers: {
+                    'x-ims-org-id': this.auth.orgId,
+                    'Authorization': `Bearer ${this.auth.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    provider: eventType.provider || this.defaults.providerId,
+                    event_code: eventType.code,
+                    label: eventType.label,
+                    description: eventType.description
+                })
+            }, retryFunction(retryOptions))
+        )
         return handleFetchErrors(response).json();
     }
 
@@ -210,42 +281,31 @@ class AdobeIOEvents {
     /**
      * Send an event
      * @param {Event} event The event to send
-     * @param {Object} retry Object containing { `retryIntervalMillis`: <time between retries>, `maxSeconds`: <time retrying till error> }
-     *                       If set to false, retry functionality will be disabled. If not set, it will use the default times
+     * @param {RetryOptions} retryOptions retry options. If set to false, retry functionality will be disabled. If not set, it will use the default times
      * @returns {Promise}
      */
-    async sendEvent(event, retry=true) {
-        const startTime = Date.now();
+    async sendEvent(event, retryOptions=true) {
         const url = `${INGRESS_HOST[this.env]}/api/events`;
 
-        const maxSeconds = (retry && retry.maxSeconds) || DEFAULT_MAX_SECONDS_TO_TRY;
-        let retryIntervalMillis = (retry && retry.retryIntervalMillis) || DEFAULT_MS_TO_WAIT;
+        retryOptions = retryInit(retryOptions, true);
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-ims-org-id': this.auth.orgId,
-                'x-api-key': this.auth.clientId,
-                'Authorization': `Bearer ${this.auth.accessToken}`
-            },
-            body: JSON.stringify({
-                user_guid: this.auth.orgId,
-                provider_id: event.provider || this.defaults.providerId,
-                event_code: event.code,
-                event: Buffer.from(JSON.stringify(event.payload || {})).toString('base64')
-            }),
-            retryOn: function(attempt, error, response) {
-                const secondsWaited = ( Date.now() - startTime) / 1000.0;
-                if ((secondsWaited < maxSeconds) && (error !== null || ( response.status >= 400 ))) {
-                    const msg = `Retrying after attempt number ${attempt + 1} and waiting ${secondsWaited} seconds to send event ${event} failed: ${response.statusText}, ${response.status}`;
-                    console.error(msg);
-                    return true;
-                }
-                return false;
-            },
-            retryDelay: attempt => (retryIntervalMillis *= 2)
-        })
+        const response = await fetch(url,
+            Object.assign({
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-ims-org-id': this.auth.orgId,
+                    'x-api-key': this.auth.clientId,
+                    'Authorization': `Bearer ${this.auth.accessToken}`
+                },
+                body: JSON.stringify({
+                    user_guid: this.auth.orgId,
+                    provider_id: event.provider || this.defaults.providerId,
+                    event_code: event.code,
+                    event: Buffer.from(JSON.stringify(event.payload || {})).toString('base64')
+                })
+            }, retryFunction(retryOptions))
+        )
         if (response.status !== 200) {
             // If retry is disabled then anything other than 200 is considered an error
 
@@ -254,7 +314,7 @@ class AdobeIOEvents {
             // the event. In this case it means that the journal has not been fully created yet.
             // The result is that the posted event is lost.
             console.log(`sending event failed with ${response.status} ${response.statusText}`);
-            throw Error(response.statusText);
+            throw Error(`${response.status} ${response.statusText}`);
         }
     }
 
@@ -263,22 +323,27 @@ class AdobeIOEvents {
      *
      * @property {String} consumerId short organization ID from console.adobe.io (not the IMS org ID), example: 105979
      * @property {String} applicationId integration ID from console.adobe.io, example: 47334
+     * @param {RetryOptions} retryOptions retry options. If set to false, retry functionality will be disabled. If not set, it will use the default times
      * @returns {Promise}
      */
-    async listConsumerRegistrations(consumerId, applicationId) {
+    async listConsumerRegistrations(consumerId, applicationId, retryOptions=true) {
         consumerId = consumerId || this.defaults.consumerId;
         applicationId = applicationId || this.defaults.applicationId;
 
         const url = `${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`;
 
-        const response = await fetch(url, {
-            headers: {
-                'x-api-key': this.auth.clientId,
-                'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        })
+        retryOptions = retryInit(retryOptions);
+
+        const response = await fetch(url,
+            Object.assign({
+                headers: {
+                    'x-api-key': this.auth.clientId,
+                    'x-ims-org-id': this.auth.orgId,
+                    'Authorization': `Bearer ${this.auth.accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }, retryFunction(retryOptions))
+        )
         return handleFetchErrors(response).json();
     }
 
@@ -294,9 +359,10 @@ class AdobeIOEvents {
     /**
      * Create a new journal.
      * @param {Journal} journal The journal to create
+     * @param {RetryOptions} retryOptions retry options. If set to false, retry functionality will be disabled. If not set, it will use the default times
      * @returns {Promise}
      */
-    async createJournal(journal) {
+    async createJournal(journal, retryOptions=true) {
         const body =   {
             client_id: this.auth.clientId,
             name: journal.name,
@@ -323,16 +389,21 @@ class AdobeIOEvents {
         const applicationId = journal.applicationId || this.defaults.applicationId;
 
         const url =`${IO_API_HOST[this.env]}/events/organizations/${consumerId}/integrations/${applicationId}/registrations`;
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'x-api-key': this.auth.clientId,
-                'x-ims-org-id': this.auth.orgId,
-                'Authorization': `Bearer ${this.auth.accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        })
+
+        retryOptions = retryInit(retryOptions);
+
+        const response = await fetch(url,
+            Object.assign({
+                method: 'POST',
+                headers: {
+                    'x-api-key': this.auth.clientId,
+                    'x-ims-org-id': this.auth.orgId,
+                    'Authorization': `Bearer ${this.auth.accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            }, retryFunction(retryOptions))
+        )
         return handleFetchErrors(response).json();
     }
 

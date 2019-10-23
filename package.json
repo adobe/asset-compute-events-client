@@ -26,9 +26,9 @@
   "devDependencies": {
     "eslint": "^5.2.0",
     "eslint-config-problems": "^1.1.0",
-    "fetch-mock": "^7.3.9",
     "mocha": "^5.2.0",
     "mockery": "^2.1.0",
+    "nock": "^11.4.0",
     "rewire": "^4.0.1"
   }
 }

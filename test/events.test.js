@@ -25,6 +25,8 @@ const AdobeAuth = require('../src/auth');
 const assert = require('assert');
 const os = require("os");
 const testconfig = require('./testconfig');
+const mockery = require('mockery');
+const nock = require('nock');
 
 const rewire = require('rewire');
 const parseLinkHeader = rewire('../src/events').__get__('parseLinkHeader')
@@ -38,6 +40,35 @@ function getIsoDate(date) {
             ('0'+ date.getDate()).slice(-2);
 }
 
+function createNocks(base_url, path, method) {
+    if (method === "GET") {
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .get(path)
+            .thrice()
+            .reply(504)
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .get(path)
+            .reply(200, {status:200, statusText:'Success!'})
+    }
+    if (method === "POST") {
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .thrice()
+            .reply(504)
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(200, {status:200, statusText:'Success!'})
+    }
+}
+
 // ---------------------------------------------------
 
 const DATE = new Date();
@@ -49,6 +80,9 @@ const TEST_EVENT_CODE = "test_event";
 const TEST_EVENT_LABEL = "Test Event";
 
 const DESCRIPTION = "Automatically created by test code from @nui/adobe-io-events-client. Can be deleted if it was left over.";
+
+const FAKE_ACCESS_TOKEN = 'cdsj234fcdlr4';
+const FAKE_ORG_ID = 'fakeorgId'
 
 // ---------------------------------------------------
 // test cases
@@ -360,3 +394,183 @@ describe('AdobeIOEvents', function() {
         });
     });
 });
+
+
+describe('Test retry', () => {
+   before( () => {
+        const mockJwt = {
+            decode: function(accessToken) {
+                return { clientId:"1245" }
+            }
+        }
+        mockery.enable({
+            warnOnUnregistered: false,
+            useCleanCache:true
+        });
+        mockery.registerMock('jsonwebtoken', mockJwt);
+   });
+   afterEach( () => {
+    assert(nock.isDone());
+    nock.cleanAll();
+   })
+
+    it('testing journal set up with retries using mocks', async () => {
+        const AdobeIOEvents = require('../src/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+
+        process.env.__OW_DEADLINE = Date.now() + 10000;
+
+        createNocks("https://csm.adobe.io", "/csm/events/provider", "POST");
+        await ioEvents2.registerEventProvider({
+            id: TEST_PROVIDER_ID,
+            label: TEST_PROVIDER_LABEL,
+            instanceId: TEST_PROVIDER_ID
+        })
+        console.log('Registered event provider.');
+
+        createNocks("https://csm.adobe.io", "/csm/events/metadata", "POST");
+        await ioEvents2.registerEventType({
+            provider: TEST_PROVIDER_ID,
+            code: TEST_EVENT_CODE,
+            label: TEST_EVENT_LABEL,
+            description: "Fake registering an event"
+        })
+        console.log('Registered event type. Listing consumer registrations');
+
+        const consumerId = '1234';
+        const applicationId = '4321';
+        createNocks("https://api.adobe.io", `/events/organizations/${consumerId}/integrations/${applicationId}/registrations`, "GET");
+        await ioEvents2.listConsumerRegistrations(consumerId, applicationId)
+
+        console.log('Creating journal:');
+        createNocks("https://api.adobe.io", `/events/organizations/${consumerId}/integrations/${applicationId}/registrations`, "POST");
+        await ioEvents2.createJournal({
+            name: 'fake journal',
+            description: 'this journal is mocked',
+            providerId: TEST_PROVIDER_ID,
+            eventTypes: [TEST_EVENT_CODE],
+            consumerId: consumerId,
+            applicationId: applicationId
+        })
+        console.log('Journal created.')
+    }).timeout(20000);
+
+    it('should succeed in sending an event after three retries', async () => {
+        const AdobeIOEvents = require('../src/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+        createNocks("https://eg-ingress.adobe.io","/api/events", "POST" );
+        await ioEvents2.sendEvent({
+            code: 'test_event',
+            payload: {
+                hello: "world"
+            }
+        })
+    });
+
+    it('should error by retry timeout after 2 seconds', async function() {
+        const AdobeIOEvents = require('../src/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+
+        let threw = false;
+        createNocks("https://eg-ingress.adobe.io","/api/events", "POST" );
+        try {
+            const res = await ioEvents2.sendEvent({
+                code: 'test_event',
+                payload: {
+                    hello: "world"
+                }
+            },
+            {
+                maxSeconds:3,
+                retryIntervalMillis:600
+            }
+            )
+        }
+        catch(e)  {
+            console.log(`Expected error: ${e.message}`)
+            assert.equal(e.message, "504 Gateway Timeout");
+            threw = true;
+        }
+        assert.ok(threw);
+        assert(! nock.isDone());
+        assert.equal(nock.pendingMocks().length, 1) // make sure it really did retries
+        nock.cleanAll();
+    }).timeout(8000);
+
+    it('should error on first try with retry disabled (mocked)', async function() {
+        const AdobeIOEvents = require('../src/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+
+        process.env.__OW_DEADLINE = Date.now() + 10000;
+
+        createNocks("https://csm.adobe.io", "/csm/events/provider", "POST");
+        let threw = false;
+
+        try {
+            await ioEvents2.registerEventProvider({
+                id: TEST_PROVIDER_ID,
+                label: TEST_PROVIDER_LABEL,
+                instanceId: TEST_PROVIDER_ID
+            }, false)
+            console.log('Registered event provider.');
+        }
+        catch(e)  {
+            console.log(`Expected error: ${e.message}`)
+            assert.equal(e.message, "504 Gateway Timeout");
+            threw = true;
+        }
+        assert.ok(threw);
+        assert(! nock.isDone());
+        assert.equal(nock.pendingMocks().length, 2);
+        nock.cleanAll();
+    }).timeout(8000);
+
+
+    it('should error on first try (unmocked)', async function() {
+        const AdobeIOEvents = require('../src/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+
+        let threw = false;
+        try {
+            await ioEvents2.registerEventProvider({
+                id: TEST_PROVIDER_ID,
+                label: TEST_PROVIDER_LABEL,
+                instanceId: TEST_PROVIDER_ID
+            })
+            console.log('Registered event provider.');
+        }
+        catch(e)  {
+            console.log(`Expected error: ${e.message}`);
+            assert.equal(e.message, "401 Unauthorized");
+            threw = true;
+        }
+        assert.ok(threw);
+    }).timeout(8000);
+
+    after( () => {
+        nock.cleanAll();
+        mockery.deregisterMock('jsonwebtoken');
+        mockery.disable();
+
+    })
+})
