@@ -18,29 +18,8 @@
 'use strict';
 
 const EventEmitter = require('events');
-const querystring = require('querystring');
+const { appendQueryParams } = require('./util');
 const DEFAULT_INTERVAL = 2000;
-
-/**
- * Appends querystring key/value pairs to a url
- *
- * @param {String} url URL
- * @param {Object} qs Querystring key/value pairs
- * @returns {String} URL with appended querystring key/value pairs
- */
-function appendQueryParams(url, qs) {
-    let separator = (url.indexOf('?') >= 0) ? '&' : '?';
-    let result = url;
-    for (const key of Object.getOwnPropertyNames(qs)) {
-        if (qs[key]) {
-            const escKey = querystring.escape(key);
-            const escValue = querystring.escape(qs[key]);
-            result += `${separator}${escKey}=${escValue}`;
-            separator = '&';
-        }
-    }
-    return result;
-}
 
 /**
  * Event fired before a polling request is made to Adobe I/O events

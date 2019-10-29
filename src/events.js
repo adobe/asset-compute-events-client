@@ -22,6 +22,7 @@
 const fetch = require('fetch-retry');
 const jsonwebtoken = require('jsonwebtoken');
 const httplinkheader = require('http-link-header');
+const { appendQueryParams } = require('./util');
 
 const CSM_HOST = {
     prod: "https://csm.adobe.io",
@@ -38,7 +39,6 @@ const IO_API_HOST = {
 
 const DEFAULT_MS_TO_WAIT = 100;
 const DEFAULT_MAX_SECONDS_TO_TRY = 60;
-
 
 /**
  * Parse the Link header
@@ -443,7 +443,8 @@ class AdobeIOEvents {
      * @returns {Promise} with the response json includes events and links (if available)
      */
     async getEventsFromJournal(journalUrl, options) {
-        const response = await fetch(journalUrl, {
+        const url = appendQueryParams(journalUrl, options);
+        const response = await fetch(url, {
             headers: {
                 'x-api-key': this.auth.clientId,
                 'x-ims-org-id': this.auth.orgId,
@@ -451,21 +452,19 @@ class AdobeIOEvents {
                 'Content-Type': 'application/json',
                 'Accept': 'application/vnd.adobecloud.events+json'
             },
-            qs: options,
-            resolveWithFullResponse: true,
             retries: 0
         })
 
         if ((response.status === 200) || (response.status === 204)) {
             const resultBody = await ((response.status === 200)? response.json():{});
             const result = Object.assign({}, resultBody);
-            const linkHeader = response.headers._headers.link;
-            const retryAfterHeader = response.headers._headers['retry-after'];
+            const linkHeader = response.headers.get("link");
+            const retryAfterHeader = response.headers.get("retry-after");
             if (linkHeader) {
-                result.link = parseLinkHeader(journalUrl, linkHeader[0]);
+                result.link = parseLinkHeader(journalUrl, linkHeader);
             }
             if (retryAfterHeader) {
-                result.retryAfter = parseRetryAfterHeader(retryAfterHeader[0]);
+                result.retryAfter = parseRetryAfterHeader(retryAfterHeader);
             }
             return result;
         } else {
