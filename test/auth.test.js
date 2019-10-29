@@ -15,6 +15,8 @@
  *  from Adobe Systems Incorporated.
  */
 
+/* eslint-env mocha */
+
 'use strict';
 
 const AdobeAuth = require('../src/auth');

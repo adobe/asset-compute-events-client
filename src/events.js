@@ -22,8 +22,6 @@
 const fetch = require('fetch-retry');
 const jsonwebtoken = require('jsonwebtoken');
 const httplinkheader = require('http-link-header');
-const util = require('util');
-const sleep = util.promisify(setTimeout); // sleep in ms
 
 const CSM_HOST = {
     prod: "https://csm.adobe.io",
@@ -110,7 +108,7 @@ function retryFunction(retryOptions) {
             }
             return false;
         },
-        retryDelay: attempt => (retryOptions.retryIntervalMillis *= 2)
+        retryDelay: () => (retryOptions.retryIntervalMillis *= 2)
     }
 }
 

@@ -15,7 +15,7 @@
  *  from Adobe Systems Incorporated.
  */
 
-/* eslint-disable prefer-template */
+/* eslint-env mocha */
 
 'use strict';
 
@@ -30,6 +30,21 @@ const nock = require('nock');
 
 const rewire = require('rewire');
 const parseLinkHeader = rewire('../src/events').__get__('parseLinkHeader')
+
+// ---------------------------------------------------
+
+const DATE = new Date();
+
+const TEST_PROVIDER_ID    = `__adobe-io-events-client__test__${os.hostname()}__${DATE.getTime()}`;
+const TEST_PROVIDER_LABEL = `${getIsoDate(DATE)} Test adobe-io-events-client - ${os.hostname()} (${DATE.getTime()})`;
+
+const TEST_EVENT_CODE = "test_event";
+const TEST_EVENT_LABEL = "Test Event";
+
+const DESCRIPTION = "Automatically created by test code from @nui/adobe-io-events-client. Can be deleted if it was left over.";
+
+const FAKE_ACCESS_TOKEN = 'cdsj234fcdlr4';
+const FAKE_ORG_ID = 'fakeorgId'
 
 // ---------------------------------------------------
 // helpers
@@ -68,21 +83,6 @@ function createNocks(base_url, path, method) {
             .reply(200, {status:200, statusText:'Success!'})
     }
 }
-
-// ---------------------------------------------------
-
-const DATE = new Date();
-
-const TEST_PROVIDER_ID    = `__adobe-io-events-client__test__${os.hostname()}__${DATE.getTime()}`;
-const TEST_PROVIDER_LABEL = `${getIsoDate(DATE)} Test adobe-io-events-client - ${os.hostname()} (${DATE.getTime()})`;
-
-const TEST_EVENT_CODE = "test_event";
-const TEST_EVENT_LABEL = "Test Event";
-
-const DESCRIPTION = "Automatically created by test code from @nui/adobe-io-events-client. Can be deleted if it was left over.";
-
-const FAKE_ACCESS_TOKEN = 'cdsj234fcdlr4';
-const FAKE_ORG_ID = 'fakeorgId'
 
 // ---------------------------------------------------
 // test cases
@@ -399,7 +399,7 @@ describe('AdobeIOEvents', function() {
 describe('Test retry', () => {
    before( () => {
         const mockJwt = {
-            decode: function(accessToken) {
+            decode: function() {
                 return { clientId:"1245" }
             }
         }
@@ -486,7 +486,7 @@ describe('Test retry', () => {
         let threw = false;
         createNocks("https://eg-ingress.adobe.io","/api/events", "POST" );
         try {
-            const res = await ioEvents2.sendEvent({
+            await ioEvents2.sendEvent({
                 code: 'test_event',
                 payload: {
                     hello: "world"
