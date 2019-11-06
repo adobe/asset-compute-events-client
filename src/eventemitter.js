@@ -87,7 +87,7 @@ class AdobeIOEventEmitter extends EventEmitter {
      * @typedef {Object} AdobeIOEventEmitterOptions
      * @property {String} restart Restart at a previous received 'next' link (optional)
      * @property {Boolean} latest Retrieve latest events on restart or error (optional)
-     * @property {Number} interval Default interval at which to poll I/O events (optional)
+     * @property {Number} interval Override interval at which to poll I/O events (optional)
      */
     /**
      * Construct and start an Adobe I/O event emitter.
@@ -102,80 +102,65 @@ class AdobeIOEventEmitter extends EventEmitter {
         this.journalUrl = appendQueryParams(journalUrl, {
             latest: options && options.latest
         });
-        this.restart = options && options.restart || null
-        this.next = this.restart || this.journalUrl
-        this.interval = options && options.interval || DEFAULT_INTERVAL
-        setImmediate(self => self.poll(), this);
+        this.next = (options && options.restart) || this.journalUrl;
+        this.interval = options && options.interval;
+        this.timeout = setTimeout(self => self.poll(), 0, this);
     }
 
     /**
      * Stop the emitter
-     *
-     * @returns {Promise} resolved when emitter finishes.
      */
-    stop() {
+    async stop() {
+        // make sure poll() doesn't trigger in the future
+        clearTimeout(this.timeout);
+
+        // if polling, wait for the poll() method to finish
         const self = this;
-        return new Promise(resolve => {
-            self.stopCallback = () => {
-                resolve();
-            }
-        });
+        if (this.isPolling) {
+            return new Promise(resolve => {
+                self.stopCallback = resolve;
+            });
+        }
     }
 
     /**
      * Poll for new events
      */
-    poll() {
+    async poll() {
         this.emit('poll');
-        // early exit if asked to stop
-        if (this.stopCallback) {
-            return this.stopCallback();
-        }
-        return Promise.resolve()
-            .then(() => {
-                return this.ioEvents.getEventsFromJournal(this.next);
-            })
-            .then(response => {
-                if (!response.events && this.restart) {
-                    // TODO: The validate API has not been implemented yet by the I/O events team.
-                }
-                return response;
-            })
-            .then(response => {
-                this.next = response.link.next;
-                this.restart = null;
-                if (response.events) {
-                    // emit each event, issue another poll() immediately
-                    // since more events may be pending
-                    for (const event of response.events) {
-                        this.emit("event", event);
-                    }
-                    return 0;
-                } else {
-                    // no events, wait to requested amount of time
-                    return response.retryAfter || this.interval;
-                }
-            })
-            .then(timeout => {
-                if (this.stopCallback) {
-                    // emit is synchronous, make sure to not issue another timeout/immediate if any
-                    // listener called stop() while handling the emitted events
-                    this.stopCallback();
-                } else if (timeout === 0) {
-                    setImmediate(self => self.poll(), this);
-                } else {
-                    setTimeout(self => self.poll(), timeout, this);
-                }
-            })
-            .catch(error => {
-                // error - start fresh from journalUrl
-                this.emit("error", error);
-                this.next = this.journalUrl;
-                this.restart = null;
-                setTimeout(self => self.poll(), this.interval, this);
-            });
-    }
+        
+        this.isPolling = true;
+        try {
+            const response = await this.ioEvents.getEventsFromJournal(this.next);
+            this.next = response.link.next;
 
+            // emit events, determine timeout
+            let timeout = 0;
+            if (response.events) {
+                // emit each event, issue another poll() immediately
+                // since more events may be pending
+                for (const event of response.events) {
+                    this.emit("event", event);
+                }
+            } else {
+                // no events, wait to requested amount of time
+                timeout = this.interval || response.retryAfter || DEFAULT_INTERVAL;
+            }
+
+            // initiate 
+            this.timeout = setTimeout(self => self.poll(), timeout, this);
+        } catch (error) {
+            // error - start fresh from journalUrl
+            this.emit("error", error);
+            this.next = this.journalUrl;
+            this.timeout = setTimeout(self => self.poll(), this.interval, this);
+        } finally {
+            this.isPolling = false;
+            if (this.stopCallback) {
+                this.stopCallback();
+            }
+        }
+    }
 }
 
 module.exports = AdobeIOEventEmitter;
