@@ -111,15 +111,18 @@ class AdobeIOEventEmitter extends EventEmitter {
      * Stop the emitter
      */
     async stop() {
-        // make sure poll() doesn't trigger in the future
-        clearTimeout(this.timeout);
-
         // if polling, wait for the poll() method to finish
         const self = this;
         if (this.isPolling) {
             return new Promise(resolve => {
-                self.stopCallback = resolve;
+                self.stopCallback = () => {
+                    clearTimeout(this.timeout);
+                    resolve();
+                };
             });
+        } else {
+            // make sure poll() doesn't trigger in the future
+            clearTimeout(this.timeout);
         }
     }
 
