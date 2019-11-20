@@ -19,9 +19,9 @@
 
 'use strict';
 
-const AdobeIOEvents = require('../src/events');
-const AdobeIOEventEmitter = require('../src/eventemitter');
-const AdobeAuth = require('../src/auth');
+const AdobeIOEvents = require('../lib/events');
+const AdobeIOEventEmitter = require('../lib/eventemitter');
+const AdobeAuth = require('../lib/auth');
 const assert = require('assert');
 const os = require("os");
 const testconfig = require('./testconfig');
@@ -29,7 +29,7 @@ const mockery = require('mockery');
 const nock = require('nock');
 
 const rewire = require('rewire');
-const parseLinkHeader = rewire('../src/events').__get__('parseLinkHeader')
+const parseLinkHeader = rewire('../lib/events').__get__('parseLinkHeader')
 
 // ---------------------------------------------------
 
@@ -415,7 +415,7 @@ describe('Test retry', () => {
    })
 
     it('testing journal set up with retries using mocks', async () => {
-        const AdobeIOEvents = require('../src/events');
+        const AdobeIOEvents = require('../lib/events');
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
             orgId: FAKE_ORG_ID,
@@ -460,7 +460,7 @@ describe('Test retry', () => {
     }).timeout(20000);
 
     it('should succeed in sending an event after three retries', async () => {
-        const AdobeIOEvents = require('../src/events');
+        const AdobeIOEvents = require('../lib/events');
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
             orgId: FAKE_ORG_ID,
@@ -476,7 +476,7 @@ describe('Test retry', () => {
     });
 
     it('should error by retry timeout after 2 seconds', async function() {
-        const AdobeIOEvents = require('../src/events');
+        const AdobeIOEvents = require('../lib/events');
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
             orgId: FAKE_ORG_ID,
@@ -510,7 +510,7 @@ describe('Test retry', () => {
     }).timeout(8000);
 
     it('should error on first try with retry disabled (mocked)', async function() {
-        const AdobeIOEvents = require('../src/events');
+        const AdobeIOEvents = require('../lib/events');
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
             orgId: FAKE_ORG_ID,
@@ -543,7 +543,7 @@ describe('Test retry', () => {
 
 
     it('should error on first try (unmocked)', async function() {
-        const AdobeIOEvents = require('../src/events');
+        const AdobeIOEvents = require('../lib/events');
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
             orgId: FAKE_ORG_ID,

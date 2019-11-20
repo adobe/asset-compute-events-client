@@ -19,7 +19,7 @@
 
 'use strict';
 
-const AdobeAuth = require('../src/auth');
+const AdobeAuth = require('../lib/auth');
 const testconfig = require('./testconfig');
 const jsonwebtoken = require('jsonwebtoken');
 

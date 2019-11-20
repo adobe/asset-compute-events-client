@@ -17,9 +17,9 @@
 
 'use strict';
 
-const AdobeAuth = require('./src/auth');
-const AdobeIOEvents = require('./src/events');
-const AdobeIOEventEmitter = require('./src/eventemitter');
+const AdobeAuth = require('./lib/auth');
+const AdobeIOEvents = require('./lib/events');
+const AdobeIOEventEmitter = require('./lib/eventemitter');
 
 module.exports = {
     AdobeAuth,
