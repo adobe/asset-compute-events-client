@@ -29,7 +29,7 @@ const mockery = require('mockery');
 const nock = require('nock');
 
 const rewire = require('rewire');
-const parseLinkHeader = rewire('../lib/events').__get__('parseLinkHeader')
+const parseLinkHeader = rewire('../lib/events').__get__('parseLinkHeader');
 
 // ---------------------------------------------------
 
@@ -395,7 +395,6 @@ describe('AdobeIOEvents', function() {
     });
 });
 
-
 describe('Test retry', () => {
    before( () => {
         const mockJwt = {
@@ -573,4 +572,40 @@ describe('Test retry', () => {
         mockery.disable();
 
     })
-})
+});
+
+describe('Error handling', function (){
+    it('handles http status', function(){
+        const rewiredErrorHandler = rewire('../lib/events').__get__('handleFetchErrors');
+
+        let dummyResponse = {
+            ok: true,
+            status: 200,
+            message: "OK"
+        };
+        let result = rewiredErrorHandler(dummyResponse);
+        assert.equal(result.ok, dummyResponse.ok);
+        assert.equal(result.status, dummyResponse.status);
+        assert.equal(result.message, dummyResponse.message);
+
+        try{
+            dummyResponse = {
+                ok: false,
+                status: 404
+            };
+            result = rewiredErrorHandler(dummyResponse);
+        } catch(err){
+            assert(err.statusCode, dummyResponse.status);
+        }
+
+        try{
+            dummyResponse = {
+                ok: false,
+                status: 500
+            };
+            result = rewiredErrorHandler(dummyResponse);
+        } catch(err){
+            assert(err.statusCode, dummyResponse.status);
+        }
+    });
+});
