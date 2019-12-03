@@ -5,3 +5,9 @@ docs/
 serverless.yml
 .webpack
 build
+coverage
+.nyc_output
+.eslintrc.js
+.eslintignore
+.circleci
+test/
