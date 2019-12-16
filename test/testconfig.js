@@ -19,6 +19,7 @@
 
 const yaml = require('js-yaml');
 const fs = require('fs');
+const { base64decode } = require('nodejs-base64');
 
 module.exports = {
     loadIntegration: function() {
@@ -27,6 +28,10 @@ module.exports = {
             const yml = fs.readFileSync(process.env.ADOBE_IO_INTEGRATION_YAML, 'utf8');
             return yaml.safeLoad(yml);
 
+        } else if (process.env.NUI_IT_INTEGRATION_YAML) {
+            console.log("        loading integration yaml from `NUI_IT_INTEGRATION_YAML`");
+            const yml = base64decode(process.env.NUI_IT_INTEGRATION_YAML);
+            return yaml.safeLoad(yml);
         } else {
             console.log(`        SKIPPING tests because of missing config.
 
