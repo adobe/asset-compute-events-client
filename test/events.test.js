@@ -44,7 +44,8 @@ const TEST_EVENT_LABEL = "Test Event";
 const DESCRIPTION = "Automatically created by test code from @nui/adobe-io-events-client. Can be deleted if it was left over.";
 
 const FAKE_ACCESS_TOKEN = 'cdsj234fcdlr4';
-const FAKE_ORG_ID = 'fakeorgId'
+const FAKE_ORG_ID = 'fakeorgId';
+const FAKE_CLIENT_ID = 'fakeClientId';
 
 // ---------------------------------------------------
 // helpers
@@ -411,13 +412,14 @@ describe('Test retry', () => {
    afterEach( () => {
     assert(nock.isDone());
     nock.cleanAll();
-   })
+   });
 
     it('testing journal set up with retries using mocks', async () => {
         const AdobeIOEvents = require('../lib/events');
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
             orgId: FAKE_ORG_ID,
+            clientId: FAKE_CLIENT_ID,
             defaults: {}
         });
 
