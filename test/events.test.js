@@ -27,6 +27,7 @@ const os = require("os");
 const testconfig = require('./testconfig');
 const mockery = require('mockery');
 const nock = require('nock');
+const jsonwebtoken = require('jsonwebtoken');
 
 const rewire = require('rewire');
 const parseLinkHeader = rewire('../lib/events').__get__('parseLinkHeader');
@@ -88,7 +89,7 @@ function createNocks(base_url, path, method) {
 // ---------------------------------------------------
 // test cases
 
-describe('AdobeIOEvents', function() {
+describe('events.js - AdobeIOEvents', function() {
     let ioEvents;
     let integration;
     let accessToken;
@@ -141,22 +142,22 @@ describe('AdobeIOEvents', function() {
     });
 
     describe('#registerEventProvider()', () => {
-        it('should register an event provider', () => {
+        it('should register an event provider', async () => {
 
-            return ioEvents.registerEventProvider({
+            const result = await ioEvents.registerEventProvider({
                 id: TEST_PROVIDER_ID,
                 label: TEST_PROVIDER_LABEL,
                 grouping: AdobeIOEvents.Groups.MARKETING_CLOUD,
                 metadata: AdobeIOEvents.Metadata.ASSET_COMPUTE,
                 instanceId: TEST_PROVIDER_ID
-            })
-            .then(() => {
-                assert(true);
             });
+
+            // no exception means test OK
+            assert.ok(result !== undefined);
+            assert.ok(result !== null);
         });
 
-        it('should register an event provider with provider set in defaults', () => {
-
+        it('should register an event provider with provider set in defaults', async () => {
             const ioEvents2 = new AdobeIOEvents({
                 accessToken: accessToken,
                 orgId: integration.technicalAccount.org,
@@ -166,33 +167,33 @@ describe('AdobeIOEvents', function() {
                 }
             });
 
-            return ioEvents2.registerEventProvider({
+            const result = await ioEvents2.registerEventProvider({
                 label: TEST_PROVIDER_LABEL,
                 grouping: AdobeIOEvents.Groups.MARKETING_CLOUD,
                 instanceId: TEST_PROVIDER_ID
-            })
-            .then(() => {
-                assert(true);
             });
+
+            // no exception means test OK
+            assert.ok(result !== undefined);
+            assert.ok(result !== null);
         });
     });
 
     describe('#registerEventType()', () => {
-        it('should register an event type', () => {
-
-            return ioEvents.registerEventType({
+        it('should register an event type', async () => {
+            const result = await ioEvents.registerEventType({
                 provider: TEST_PROVIDER_ID,
                 code: TEST_EVENT_CODE,
                 label: TEST_EVENT_LABEL,
                 description: "This event indicates that something happened"
-            })
-            .then(() => {
-                assert(true);
             });
+
+            // no exception means test OK
+            assert.ok(result !== undefined);
+            assert.ok(result !== null);
         });
 
-        it('should register an event type with provider set in defaults', () => {
-
+        it('should register an event type with provider set in defaults', async () => {
             const ioEvents2 = new AdobeIOEvents({
                 accessToken: accessToken,
                 orgId: integration.technicalAccount.org,
@@ -202,31 +203,35 @@ describe('AdobeIOEvents', function() {
                 }
             });
 
-            return ioEvents2.registerEventType({
+            const result = await ioEvents2.registerEventType({
                 code: TEST_EVENT_CODE,
                 label: TEST_EVENT_LABEL,
                 description: "This event indicates that something happened"
-            })
-            .then(() => {
-                assert(true);
             });
+
+            // no exception means test OK
+            assert.ok(result !== undefined);
+            assert.ok(result !== null);
         });
     });
 
     describe('#createJournal()', () => {
 
-        it('should create a journal', () => {
-            return ioEvents.createJournal({
+        it('should create a journal', async () => {
+            const response = await ioEvents.createJournal({
                 name: `${getIsoDate(DATE)} - JS test journal - create`,
                 description: DESCRIPTION,
                 providerId: TEST_PROVIDER_ID,
                 eventTypes: [TEST_EVENT_CODE]
-            })
-            .then(response => {
-                console.log("        created journal with registration id", response.registration_id);
-                journalRegistrationIds.push(response.registration_id);
-                assert(true);
             });
+
+            assert.ok(response !== undefined);
+            assert.ok(response !== null);
+
+            assert.ok(response.registration_id !== undefined);
+            assert.ok(response.registration_id !== null);
+            console.log("        created journal with registration id", response.registration_id);
+            journalRegistrationIds.push(response.registration_id);
         });
     });
 
@@ -276,7 +281,7 @@ describe('AdobeIOEvents', function() {
                 console.log("        waiting a bit for new journal in I/O events to become ready...");
             })
             // wait some time after creation otherwise sendEvent will fail with 204
-            .then(() => new Promise(resolve => setTimeout(resolve, 30 * 1000)))
+            .then(() => new Promise(resolve => setTimeout(resolve, 45 * 1000)))
             .catch(err => {
                 console.log("        SKIPPING send event tests because could not setup event registration and journal:", err);
                 this.skip();
@@ -311,7 +316,7 @@ describe('AdobeIOEvents', function() {
             });
         });
 
-        it('should send an event with provider set in defaults', () => {
+        it('should send an event with provider set in defaults', async () => {
 
             const ioEvents2 = new AdobeIOEvents({
                 accessToken: accessToken,
@@ -322,15 +327,13 @@ describe('AdobeIOEvents', function() {
                 }
             });
 
-            return ioEvents2.sendEvent({
+            await ioEvents2.sendEvent({
                 code: TEST_EVENT_CODE,
                 payload: {
                     hello: "world"
                 }
-            })
-            .then(() => {
-                assert(true);
             });
+            
         });
     });
 
@@ -380,7 +383,7 @@ describe('AdobeIOEvents', function() {
         // requires use of DELETE /csm/events/provider/{id} which is not working right now
 
         console.log("cleaning up...");
-
+        process.env.DELETE_JOURNAL_API_KEY = "cloudactions-service";
         return Promise.all(
             journalRegistrationIds.map(id => {
                 console.log("deleting journal registration:", id);
@@ -391,28 +394,30 @@ describe('AdobeIOEvents', function() {
             console.log("deleting event provider:", TEST_PROVIDER_ID);
             return ioEvents.deleteEventProvider(TEST_PROVIDER_ID)
         }).then(() => {
+            delete process.env.DELETE_JOURNAL_API_KEY;
             console.log("cleanup done.");
         });
     });
 });
 
 describe('Test retry', () => {
-   before( () => {
+    before( () => {
         const mockJwt = {
             decode: function() {
-                return { clientId:"1245" }
+                return { clientId:"1245" };
             }
         }
         mockery.enable({
             warnOnUnregistered: false,
-            useCleanCache:true
+            useCleanCache: true
         });
         mockery.registerMock('jsonwebtoken', mockJwt);
-   });
-   afterEach( () => {
-    assert(nock.isDone());
-    nock.cleanAll();
-   });
+    });
+
+    beforeEach( () => {
+        assert(nock.isDone());
+        nock.cleanAll();
+    });
 
     it('testing journal set up with retries using mocks', async () => {
         const AdobeIOEvents = require('../lib/events');
@@ -426,38 +431,44 @@ describe('Test retry', () => {
         process.env.__OW_DEADLINE = Date.now() + 10000;
 
         createNocks("https://csm.adobe.io", "/csm/events/provider", "POST");
-        await ioEvents2.registerEventProvider({
+        let result = await ioEvents2.registerEventProvider({
             id: TEST_PROVIDER_ID,
             label: TEST_PROVIDER_LABEL,
             instanceId: TEST_PROVIDER_ID
-        })
+        });
+        assert.ok(result !== undefined);
+        assert.ok(result !== null);
         console.log('Registered event provider.');
 
         createNocks("https://csm.adobe.io", "/csm/events/metadata", "POST");
-        await ioEvents2.registerEventType({
+        result = await ioEvents2.registerEventType({
             provider: TEST_PROVIDER_ID,
             code: TEST_EVENT_CODE,
             label: TEST_EVENT_LABEL,
             description: "Fake registering an event"
-        })
+        });
+        assert.ok(result !== undefined);
+        assert.ok(result !== null);
         console.log('Registered event type. Listing consumer registrations');
 
         const consumerId = '1234';
         const applicationId = '4321';
         createNocks("https://api.adobe.io", `/events/organizations/${consumerId}/integrations/${applicationId}/registrations`, "GET");
-        await ioEvents2.listConsumerRegistrations(consumerId, applicationId)
+        await ioEvents2.listConsumerRegistrations(consumerId, applicationId);
 
         console.log('Creating journal:');
         createNocks("https://api.adobe.io", `/events/organizations/${consumerId}/integrations/${applicationId}/registrations`, "POST");
-        await ioEvents2.createJournal({
+        result = await ioEvents2.createJournal({
             name: 'fake journal',
             description: 'this journal is mocked',
             providerId: TEST_PROVIDER_ID,
             eventTypes: [TEST_EVENT_CODE],
             consumerId: consumerId,
             applicationId: applicationId
-        })
-        console.log('Journal created.')
+        });
+        assert.ok(result !== undefined);
+        assert.ok(result !== null);
+        console.log('Journal created.');
     }).timeout(20000);
 
     it('should succeed in sending an event after three retries', async () => {
@@ -465,6 +476,25 @@ describe('Test retry', () => {
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
             orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+        createNocks("https://eg-ingress.adobe.io","/api/events", "POST" );
+        await ioEvents2.sendEvent({
+            code: 'test_event',
+            payload: {
+                hello: "world"
+            }
+        })
+    });
+
+    it('should succeed in sending an event after three retries when as given into params', async () => {
+        const AdobeIOEvents = require('../lib/events');
+
+        const decodedToken = jsonwebtoken.decode(FAKE_ACCESS_TOKEN);
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            as: decodedToken,
             defaults: {}
         });
         createNocks("https://eg-ingress.adobe.io","/api/events", "POST" );
@@ -496,17 +526,16 @@ describe('Test retry', () => {
             {
                 maxSeconds:3,
                 retryIntervalMillis:600
-            }
-            )
+            });
         }
         catch(e)  {
-            console.log(`Expected error: ${e.message}`)
+            console.log(`Expected error: ${e.message}`);
             assert.equal(e.message, "504 Gateway Timeout");
             threw = true;
         }
         assert.ok(threw);
         assert(! nock.isDone());
-        assert.equal(nock.pendingMocks().length, 1) // make sure it really did retries
+        assert.equal(nock.pendingMocks().length, 1); // make sure it really did retries
         nock.cleanAll();
     }).timeout(8000);
 
@@ -524,15 +553,17 @@ describe('Test retry', () => {
         let threw = false;
 
         try {
-            await ioEvents2.registerEventProvider({
+            const result = await ioEvents2.registerEventProvider({
                 id: TEST_PROVIDER_ID,
                 label: TEST_PROVIDER_LABEL,
                 instanceId: TEST_PROVIDER_ID
-            }, false)
+            }, false);
+            assert.ok(result !== undefined);
+            assert.ok(result !== null);
             console.log('Registered event provider.');
         }
         catch(e)  {
-            console.log(`Expected error: ${e.message}`)
+            console.log(`Expected error: ${e.message}`);
             assert.equal(e.message, "504 Gateway Timeout");
             threw = true;
         }
@@ -557,7 +588,7 @@ describe('Test retry', () => {
                 id: TEST_PROVIDER_ID,
                 label: TEST_PROVIDER_LABEL,
                 instanceId: TEST_PROVIDER_ID
-            })
+            });
             console.log('Registered event provider.');
         }
         catch(e)  {

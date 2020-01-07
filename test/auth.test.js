@@ -19,6 +19,7 @@
 
 'use strict';
 
+const assert = require('assert');
 const AdobeAuth = require('../lib/auth');
 const testconfig = require('./testconfig');
 const jsonwebtoken = require('jsonwebtoken');
@@ -38,12 +39,13 @@ describe('AdobeAuth', function() {
 
     describe('createAccessToken()', function() {
 
-        it('should create an access token', function() {
-            return new AdobeAuth()
-                .createAccessToken(integration.technicalAccount, ["ent_adobeio_sdk"])
-                .then(accessToken => {
-                    jsonwebtoken.decode(accessToken);
-                });
+        it('should create an access token', async function() {
+            const accessToken = await new AdobeAuth().createAccessToken(integration.technicalAccount, ["ent_adobeio_sdk"]);
+            
+            assert.ok(accessToken !== undefined);
+            assert.ok(accessToken !== null);
+
+            jsonwebtoken.decode(accessToken);
         });
     });
 });
