@@ -11,3 +11,5 @@ coverage
 .eslintignore
 .circleci
 test/
+# pipeline release config
+.releaserc.json
