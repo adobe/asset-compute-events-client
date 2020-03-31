@@ -1,5 +1,5 @@
 <!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
-[![npm version](https://img.shields.io/badge/%40nui%2Fadobe--io--events--client-1.3.0-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/adobe-io-events-client/-/@nui/adobe-io-events-client-1.3.0.tgz)
+[![npm version](https://img.shields.io/badge/%40nui%2Fadobe--io--events--client-2.0.0-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/adobe-io-events-client/-/@nui/adobe-io-events-client-2.0.0.tgz)
 
 Adobe I/O Events Javascript Client
 ==================================
