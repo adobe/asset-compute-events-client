@@ -506,7 +506,7 @@ describe('Test retry', () => {
         });
     });
 
-    it('should error by retry timeout after 3 seconds', async function() {
+    it('should error by retry timeout after 300ms', async function() {
         const AdobeIOEvents = require('../lib/events');
         const ioEvents2 = new AdobeIOEvents({
             accessToken: FAKE_ACCESS_TOKEN,
@@ -532,8 +532,8 @@ describe('Test retry', () => {
                 }
             },
             {
-                retryMax:3000,
-                retryInterval:600
+                retryMaxDuration:300,
+                retryInitialDelay:100
             });
         }
         catch(e)  {
@@ -547,7 +547,7 @@ describe('Test retry', () => {
         console.log(nock.pendingMocks().length);
         assert.ok(nock.pendingMocks().length, 2);
         nock.cleanAll();
-    }).timeout(8000);
+    }).timeout(2000);
 
     it('should error on first try with retry disabled (mocked)', async function() {
         const AdobeIOEvents = require('../lib/events');
