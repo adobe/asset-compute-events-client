@@ -27,7 +27,7 @@ const ioEvents = new AdobeIOEvents({
     accessToken: "ey...",
     // organization sending/receiving events
     orgId: "6EEF12345678901234567890@AdobeOrg",
-    
+
     defaults: {
         providerId: "my_event_provider_id"
     }
@@ -145,3 +145,8 @@ technicalAccount:
     -----END PRIVATE KEY-----
 ```
 
+### Contributing
+Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
+
+### Licensing
+This project is licensed under the Apache V2 License. See [LICENSE](LICENSE) for more information.
