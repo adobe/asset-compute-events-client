@@ -18,7 +18,7 @@
     "test": "nyc --reporter=html --reporter=text mocha --timeout 8000 ./test/*"
   },
   "dependencies": {
-    "@nui/node-fetch-retry": "^6.0.0",
+    "@nui/node-fetch-retry": "^7.0.0",
     "form-data": "^2.5.1",
     "http-link-header": "^1.0.2",
     "jsonwebtoken": "^8.5.1",
