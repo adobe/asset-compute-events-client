@@ -1,6 +1,6 @@
 {
   "name": "@nui/adobe-io-events-client",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "main": "index.js",
   "description": "Adobe I/O Events Javascript Client",
   "author": {
