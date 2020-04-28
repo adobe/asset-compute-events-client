@@ -122,7 +122,9 @@ describe('events.js - AdobeIOEvents', function() {
             try {
                 new AdobeIOEvents();
                 assert(false);
-            } catch(ignore) {}
+            } catch(ignore) {
+                console.log(ignore);
+            }
         });
 
         it('should fail on incorrect access token', () => {
@@ -132,7 +134,9 @@ describe('events.js - AdobeIOEvents', function() {
                     accessToken: "my token"
                 });
                 assert(false);
-            } catch(ignore) {}
+            } catch(ignore) {
+                console.log(ignore);
+            }
         });
     });
 

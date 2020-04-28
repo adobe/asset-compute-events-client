@@ -9,28 +9,30 @@
   "publishConfig": {
     "registry": "https://artifactory.corp.adobe.com/artifactory/api/npm/npm-nui-release-local"
   },
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://git.corp.adobe.com/nui/adobe-io-events-client.git"
   },
   "scripts": {
-    "pretest": "eslint ./",
-    "test": "nyc --reporter=html --reporter=text mocha --timeout 8000 ./test/*"
+    "test": "nyc --reporter=html --reporter=text mocha --timeout 8000 ./test/*",
+    "posttest": "eslint ./",
+    "beautify": "eslint ./ --fix"
   },
   "dependencies": {
-    "@nui/node-fetch-retry": "^7.0.0",
+    "@adobe/node-fetch-retry": "^1.0.1",
     "form-data": "^2.5.1",
     "http-link-header": "^1.0.2",
     "jsonwebtoken": "^8.5.1",
     "nodejs-base64": "^1.0.3"
   },
   "devDependencies": {
-    "@nui/eslint-config": "^1.0.4",
-    "mocha": "^7.0.0",
+    "@nui/eslint-config": "1.0.4",
+    "mocha": "^7.1.2",
     "mockery": "^2.1.0",
-    "nock": "^11.7.1",
-    "nyc": "^15.0.0",
-    "rewire": "^4.0.1",
+    "nock": "^12.0.3",
+    "nyc": "^15.0.1",
+    "rewire": "^5.0.0",
     "js-yaml": "^3.13.1"
   }
 }

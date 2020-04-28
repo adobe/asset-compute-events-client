@@ -11,5 +11,6 @@ coverage
 .eslintignore
 .circleci
 test/
+.travis.yml
 # pipeline release config
 .releaserc.json
