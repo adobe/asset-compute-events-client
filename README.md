@@ -1,7 +1,4 @@
-<!--- when a new release happens, the VERSION and URL in the badge have to be manually updated because it's a private registry --->
-[![npm version](https://img.shields.io/badge/%40nui%2Fadobe--io--events--client-6.0.0-blue.svg)](https://artifactory.corp.adobe.com/artifactory/npm-nui-release/@nui/adobe-io-events-client/-/@nui/adobe-io-events-client-6.0.0.tgz)
-
-Adobe I/O Events Javascript Client
+Adobe Asset Compute I/O Events Javascript Client
 ==================================
 
 A simple Javascript/NodeJS client for using [Adobe I/O Events](https://www.adobe.io/apis/cloudplatform/events/documentation.html).
@@ -10,7 +7,7 @@ Installation
 ------------
 
 ```
-npm install @nui/adobe-io-events-client
+npm install @adobe/asset-compute-events-client
 ```
 
 Usage
@@ -19,7 +16,7 @@ Usage
 ### Sending an event
 
 ```javascript
-const { AdobeIOEvents } = require('@nui/adobe-io-events-client');
+const { AdobeIOEvents } = require('@adobe/asset-compute-events-client');
 
 // setup using necessary credentials
 const ioEvents = new AdobeIOEvents({
@@ -47,12 +44,12 @@ return ioEvents.sendEvent({
 ### Receiving events
 
 ```javascript
-const { AdobeIOEvents, AdobeIOEventEmitter } = require('@nui/adobe-io-events-client');
+const { AdobeIOEvents, AdobeIOEventEmitter } = require('@adobe/asset-compute-events-client');
 
 // setup using necessary credentials
 const ioEvents = new AdobeIOEvents({
     // access token from an integration/technical account with I/O Events entitlement
-    accessToken: "ey...",
+    accessToken: "access...",
 });
 
 // receiving events
@@ -94,7 +91,7 @@ Integration YAML
 
 We designed a fully self-contained YAML file describing an Adobe I/O Integration which can be used by applications and CLIs. This YAML also includes the necessary credentials (private key and client secret) to act on behalf of the technical account of the integration.
 
-### Generate YAML using bookmarklet
+### Generate YAML using bookmarklet (Adobe internal)
 
 You can get the file easily using a handy bookmarklet. Please find it here:
 

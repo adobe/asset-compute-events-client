@@ -37,7 +37,7 @@ const TEST_PROVIDER_LABEL = `${getIsoDate(DATE)} Test adobe-io-events-client - $
 const TEST_EVENT_CODE = "test_event";
 const TEST_EVENT_LABEL = "Test Event";
 
-const DESCRIPTION = "Automatically created by test code from @nui/adobe-io-events-client. Can be deleted if it was left over.";
+const DESCRIPTION = "Automatically created by test code from @adobe/asset-compute-events-client. Can be deleted if it was left over.";
 
 const FAKE_ACCESS_TOKEN = 'cdsj234fcdlr4';
 const FAKE_ORG_ID = 'fakeorgId';
@@ -59,12 +59,12 @@ function createNocks(base_url, path, method) {
             .matchHeader('x-ims-org-id',FAKE_ORG_ID)
             .get(path)
             .thrice()
-            .reply(504)
+            .reply(504);
         nock(base_url)
             .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
             .matchHeader('x-ims-org-id',FAKE_ORG_ID)
             .get(path)
-            .reply(200, {status:200, statusText:'Success!'})
+            .reply(200, {status:200, statusText:'Success!'});
     }
     if (method === "POST") {
         nock(base_url)
@@ -72,12 +72,12 @@ function createNocks(base_url, path, method) {
             .matchHeader('x-ims-org-id',FAKE_ORG_ID)
             .post(path)
             .thrice()
-            .reply(504)
+            .reply(504);
         nock(base_url)
             .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
             .matchHeader('x-ims-org-id',FAKE_ORG_ID)
             .post(path)
-            .reply(200, {status:200, statusText:'Success!'})
+            .reply(200, {status:200, statusText:'Success!'});
     }
 }
 
@@ -405,7 +405,7 @@ describe('Test retry', () => {
             decode: function() {
                 return { clientId:"1245" };
             }
-        }
+        };
         mockery.enable({
             warnOnUnregistered: false,
             useCleanCache: true
