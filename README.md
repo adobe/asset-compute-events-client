@@ -1,7 +1,8 @@
-Adobe Asset Compute I/O Events Javascript Client - Internal Library
+Adobe Asset Compute I/O Events Javascript Client
 ==================================
 
-An internal library as simple Javascript/NodeJS client for using [Adobe I/O Events](https://www.adobe.io/apis/cloudplatform/events/documentation.html).
+This is an internal library of the Adobe Asset Compute SDK.
+A simple Javascript/NodeJS client for using [Adobe I/O Events](https://www.adobe.io/apis/cloudplatform/events/documentation.html).
 
 Installation
 ------------
