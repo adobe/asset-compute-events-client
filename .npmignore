@@ -12,6 +12,7 @@ coverage
 .circleci
 test/
 .travis.yml
+usage.md
 
 # git stuff              
 .github/CONTRIBUTING.md         
