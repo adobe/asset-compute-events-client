@@ -10,7 +10,6 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-// extends nui central eslint configuration
 module.exports = {
-    "extends": "@nui/eslint-config",
+    "extends": "@adobe/eslint-config-asset-compute"
 };
