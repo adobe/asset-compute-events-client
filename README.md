@@ -1,6 +1,8 @@
 Adobe Asset Compute I/O Events Javascript Client
 ==================================
 
+[![Version](https://img.shields.io/npm/v/@adobe/asset-compute-events-client.svg)](https://npmjs.org/package/@adobe/asset-compute-events-client)
+
 This is an internal library of the Adobe Asset Compute SDK.
 A simple Javascript/NodeJS client for using [Adobe I/O Events](https://www.adobe.io/apis/cloudplatform/events/documentation.html).
 
