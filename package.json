@@ -17,7 +17,6 @@
     "beautify": "eslint ./ --fix",
     "dep-license-details": "license-checker -unknown --out dependencies-licenses.log",
     "dep-license-list": "license-checker --summary -unknown"
-
   },
   "dependencies": {
     "@adobe/node-fetch-retry": "^1.0.1",
