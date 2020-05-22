@@ -1,14 +1,14 @@
 /*
-Copyright 2020 Adobe. All rights reserved.
-This file is licensed to you under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License. You may obtain a copy
-of the License at http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under
-the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
-OF ANY KIND, either express or implied. See the License for the specific language
-governing permissions and limitations under the License.
-*/
+ * Copyright 2020 Adobe. All rights reserved.
+ * This file is licensed to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under
+ * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+ * OF ANY KIND, either express or implied. See the License for the specific language
+ * governing permissions and limitations under the License.
+ */
 
 /* eslint-env mocha */
 
@@ -254,37 +254,37 @@ describe('events.js - AdobeIOEvents', function() {
                 metadata: AdobeIOEvents.Metadata.ASSET_COMPUTE,
                 instanceId: TEST_PROVIDER_ID
             })
-            .then(() => {
-                return ioEvents.registerEventType({
-                    provider: TEST_PROVIDER_ID,
-                    code: TEST_EVENT_CODE,
-                    label: TEST_EVENT_LABEL,
-                    description: "This event indicates that something happened"
+                .then(() => {
+                    return ioEvents.registerEventType({
+                        provider: TEST_PROVIDER_ID,
+                        code: TEST_EVENT_CODE,
+                        label: TEST_EVENT_LABEL,
+                        description: "This event indicates that something happened"
+                    });
                 })
-            })
-            .then(() => {
-                return ioEvents.createJournal({
-                    name: `${getIsoDate(DATE)} - JS test journal - send events`,
-                    description: DESCRIPTION,
-                    providerId: TEST_PROVIDER_ID,
-                    eventTypes: [TEST_EVENT_CODE]
-                }).then(response => {
-                    console.log("        created journal with registration id", response.registration_id);
-                    journalRegistrationIds.push(response.registration_id);
-                    return response;
+                .then(() => {
+                    return ioEvents.createJournal({
+                        name: `${getIsoDate(DATE)} - JS test journal - send events`,
+                        description: DESCRIPTION,
+                        providerId: TEST_PROVIDER_ID,
+                        eventTypes: [TEST_EVENT_CODE]
+                    }).then(response => {
+                        console.log("        created journal with registration id", response.registration_id);
+                        journalRegistrationIds.push(response.registration_id);
+                        return response;
+                    });
                 })
-            })
-            .then(response => {
-                journalUrl = response.events_url;
-                console.log("        journalUrl", journalUrl);
-                console.log("        waiting a bit for new journal in I/O events to become ready...");
-            })
+                .then(response => {
+                    journalUrl = response.events_url;
+                    console.log("        journalUrl", journalUrl);
+                    console.log("        waiting a bit for new journal in I/O events to become ready...");
+                })
             // wait some time after creation otherwise sendEvent will fail with 204
-            .then(() => new Promise(resolve => setTimeout(resolve, 45 * 1000)))
-            .catch(err => {
-                console.log("        SKIPPING send event tests because could not setup event registration and journal:", err);
-                this.skip();
-            });
+                .then(() => new Promise(resolve => setTimeout(resolve, 45 * 1000)))
+                .catch(err => {
+                    console.log("        SKIPPING send event tests because could not setup event registration and journal:", err);
+                    this.skip();
+                });
         });
 
         it('should send an event and receive it via a journal', function() {
@@ -299,20 +299,20 @@ describe('events.js - AdobeIOEvents', function() {
                     timestamp: timestamp
                 }
             })
-            .then(() => {
-                console.log("        sent event.");
-
-                return AdobeIOEventEmitter.findEventInJournal(
-                    ioEvents,
-                    journalUrl,
-                    DELIVERY_TIMEOUT,
-                    event => event.event.timestamp === timestamp
-                )
                 .then(() => {
-                    console.timeEnd('        send event to journal delivery');
-                })
-                .catch(() => assert(false, "event not received within timeout"));
-            });
+                    console.log("        sent event.");
+
+                    return AdobeIOEventEmitter.findEventInJournal(
+                        ioEvents,
+                        journalUrl,
+                        DELIVERY_TIMEOUT,
+                        event => event.event.timestamp === timestamp
+                    )
+                        .then(() => {
+                            console.timeEnd('        send event to journal delivery');
+                        })
+                        .catch(() => assert(false, "event not received within timeout"));
+                });
         });
 
         it('should send an event with provider set in defaults', async () => {
@@ -332,7 +332,7 @@ describe('events.js - AdobeIOEvents', function() {
                     hello: "world"
                 }
             });
-            
+
         });
     });
 
@@ -375,7 +375,7 @@ describe('events.js - AdobeIOEvents', function() {
                 next: 'https://host.com/path/to/resource2'
             });
         });
-    })
+    });
 
     after(function() {
         // TODO: remove the event provider and all it's event types
@@ -387,11 +387,11 @@ describe('events.js - AdobeIOEvents', function() {
             journalRegistrationIds.map(id => {
                 console.log("deleting journal registration:", id);
                 return ioEvents.deleteJournal(id)
-                    .catch(e => { console.error(e)});
+                    .catch(e => { console.error(e);});
             })
         ).then(() => {
             console.log("deleting event provider:", TEST_PROVIDER_ID);
-            return ioEvents.deleteEventProvider(TEST_PROVIDER_ID)
+            return ioEvents.deleteEventProvider(TEST_PROVIDER_ID);
         }).then(() => {
             delete process.env.DELETE_JOURNAL_API_KEY;
             console.log("cleanup done.");
@@ -518,10 +518,10 @@ describe('Test retry', () => {
         //tried nock.times(5) but it does not update nock.pendingMocks().length
         for (let i = 0; i < 5; i++) {
             nock("https://eg-ingress.adobe.io")
-            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
-            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
-            .post("/api/events")
-            .reply(504);
+                .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+                .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+                .post("/api/events")
+                .reply(504);
         }
         try {
             await ioEvents2.sendEvent({
@@ -542,7 +542,7 @@ describe('Test retry', () => {
         }
         assert.ok(threw);
         assert(! nock.isDone());
-        //few retries happened and did not fail after 1 retry 
+        //few retries happened and did not fail after 1 retry
         console.log(nock.pendingMocks().length);
         assert.ok(nock.pendingMocks().length, 2);
         nock.cleanAll();
@@ -613,7 +613,7 @@ describe('Test retry', () => {
         mockery.deregisterMock('jsonwebtoken');
         mockery.disable();
 
-    })
+    });
 });
 
 describe('Error handling', function (){
