@@ -2,7 +2,7 @@
   "name": "@adobe/asset-compute-events-client",
   "version": "1.0.1",
   "main": "index.js",
-  "description": "Adobe Asset Compute I/O Events Javascript Client",
+  "description": "Adobe Asset Compute I/O Events Javascript Client_cicd",
   "author": {
     "name": "Adobe Inc."
   },
