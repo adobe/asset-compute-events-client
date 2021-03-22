@@ -17,16 +17,16 @@ const fs = require('fs');
 const { base64decode } = require('nodejs-base64');
 
 module.exports = {
-    loadIntegration: function() {
+    loadIntegration: function () {
         if (process.env.ADOBE_IO_INTEGRATION_YAML) {
             console.log("        loading integration yaml", process.env.ADOBE_IO_INTEGRATION_YAML);
             const yml = fs.readFileSync(process.env.ADOBE_IO_INTEGRATION_YAML, 'utf8');
-            return yaml.safeLoad(yml);
+            return yaml.load(yml);
 
         } else if (process.env.ASSET_COMPUTE_IT_INTEGRATION_YAML) {
             console.log("        loading integration yaml from `ASSET_COMPUTE_IT_INTEGRATION_YAML`");
             const yml = base64decode(process.env.ASSET_COMPUTE_IT_INTEGRATION_YAML);
-            return yaml.safeLoad(yml);
+            return yaml.load(yml);
         } else {
             console.log(`        SKIPPING tests because of missing config.
 
