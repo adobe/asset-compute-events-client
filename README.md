@@ -67,6 +67,9 @@ ioEventEmitter.on('error', (error) => {
 })
 ```
 
+### Links
+IO Events API: https://www.adobe.io/apis/experienceplatform/events/ioeventsapi.html
+
 ### Contributing
 Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
 
