@@ -486,6 +486,68 @@ describe('Test retry', () => {
         });
     });
 
+    it('should retry for 204 0r 5xx', async () => {
+        const AdobeIOEvents = require('../lib/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+        const base_url = "https://eg-ingress.adobe.io";
+        const path = "/api/events";
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(504);
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(204);
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(200, {status:200, statusText:'Success!'});
+
+        await ioEvents2.sendEvent({
+            code: 'test_event',
+            payload: {
+                hello: "world"
+            }
+        });
+    });
+
+    it('should retry three times for 204', async () => {
+        const AdobeIOEvents = require('../lib/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+        const base_url = "https://eg-ingress.adobe.io";
+        const path = "/api/events";
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .thrice()
+            .reply(204);
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(200, {status:200, statusText:'Success!'});
+
+        await ioEvents2.sendEvent({
+            code: 'test_event',
+            payload: {
+                hello: "world"
+            }
+        });
+    });
+
     it('should succeed in sending an event after three retries when "as" attribute given into params', async () => {
         const AdobeIOEvents = require('../lib/events');
 
