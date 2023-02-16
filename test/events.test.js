@@ -548,6 +548,53 @@ describe('Test retry', () => {
         });
     });
 
+    it('should not override retryOnHttpResponse if present', async () => {
+        const AdobeIOEvents = require('../lib/events');
+        const ioEvents2 = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+        const base_url = "https://eg-ingress.adobe.io";
+        const path = "/api/events";
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(504);
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(204);
+        nock(base_url)
+            .matchHeader('Authorization',`Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id',FAKE_ORG_ID)
+            .post(path)
+            .reply(200, {status:200, statusText:'Success!'});
+        let threw = false;
+        try {
+            await ioEvents2.sendEvent({
+                code: 'test_event',
+                payload: {
+                    hello: "world"
+                }
+            },
+            {
+                retryMaxDuration:300,
+                retryInitialDelay:100,
+                retryOnHttpResponse: (response) => { return response.status >= 500; }
+            });
+        } catch(e)  {
+            console.log(`Expected error: ${e.message}`);
+            assert.equal(e.message, "204 No Content");
+            threw = true;
+        }
+        assert.ok(threw);
+        assert(! nock.isDone());
+        nock.cleanAll();
+    });
+
     it('should succeed in sending an event after three retries when "as" attribute given into params', async () => {
         const AdobeIOEvents = require('../lib/events');
 
