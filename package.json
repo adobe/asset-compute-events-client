@@ -12,6 +12,7 @@
     "url": "https://github.com/adobe/asset-compute-events-client.git"
   },
   "dependencies": {
+    "@adobe/aio-lib-events": "^3.0.0",
     "@adobe/node-fetch-retry": "^2.2.0",
     "form-data": "^2.5.1",
     "http-link-header": "^1.0.4",
