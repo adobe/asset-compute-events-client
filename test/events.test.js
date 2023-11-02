@@ -232,6 +232,30 @@ describe('events.js - AdobeIOEvents', function() {
             console.log("        created journal with registration id", response.registration_id);
             journalRegistrationIds.push(response.registration_id);
         });
+
+        it('should return an existing journal on duplicate creation', async () => {
+            const response1 = await ioEvents.createJournal({
+                name: `${getIsoDate(DATE)} - JS test journal - duplicate create`,
+                description: DESCRIPTION,
+                providerId: TEST_PROVIDER_ID,
+                eventTypes: [TEST_EVENT_CODE]
+            });
+            const registrationId1 = response1.registration_id;
+
+            const response2 = await ioEvents.createJournal({
+                name: `${getIsoDate(DATE)} - JS test journal - duplicate create`,
+                description: DESCRIPTION,
+                providerId: TEST_PROVIDER_ID,
+                eventTypes: [TEST_EVENT_CODE]
+            });
+            const registrationId2 = response2.registration_id;
+
+            assert.ok(registrationId1 !== undefined || registrationId1 !== null);
+            assert.ok(registrationId2 !== undefined || registrationId2 !== null);
+            assert.equal(registrationId1, registrationId2);
+            console.log("        fetched existing journal with registration id", registrationId1);
+            journalRegistrationIds.push(registrationId1);
+        });
     });
 
     describe('#sendEvent()', () => {
