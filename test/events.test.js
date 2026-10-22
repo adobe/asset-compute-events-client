@@ -821,3 +821,86 @@ describe('Error handling', function (){
         }
     });
 });
+
+describe('#createJournal() 409 conflict recovery', function() {
+    afterEach(() => {
+        nock.cleanAll();
+    });
+
+    it('returns the existing registration when create responds 409 with x-conflicting-id', async () => {
+        const ioEvents = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+        const base_url = "https://api.adobe.io";
+        const consumerId = "consumer1";
+        const applicationId = "application1";
+        const conflictingId = "reg-12345";
+        const registrationsPath = `/events/organizations/${consumerId}/integrations/${applicationId}/registrations`;
+        const existingRegistration = {
+            registration_id: conflictingId,
+            name: "Asset Compute Journal",
+            events_url: "https://api.adobe.io/events/journal/existing"
+        };
+
+        // create returns 409 with the conflicting registration id in the response header
+        nock(base_url)
+            .matchHeader('Authorization', `Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id', FAKE_ORG_ID)
+            .post(registrationsPath)
+            .reply(409, {}, { 'x-conflicting-id': conflictingId });
+        // recovery fetches the existing registration by id
+        nock(base_url)
+            .matchHeader('Authorization', `Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id', FAKE_ORG_ID)
+            .get(`${registrationsPath}/${conflictingId}`)
+            .reply(200, existingRegistration);
+
+        const result = await ioEvents.createJournal({
+            name: "Asset Compute Journal",
+            description: "recover on 409",
+            providerId: TEST_PROVIDER_ID,
+            eventTypes: [TEST_EVENT_CODE],
+            consumerId: consumerId,
+            applicationId: applicationId
+        });
+
+        assert.equal(result.registration_id, conflictingId);
+        assert.ok(nock.isDone());
+    });
+
+    it('still throws on 409 when no x-conflicting-id header is present', async () => {
+        const ioEvents = new AdobeIOEvents({
+            accessToken: FAKE_ACCESS_TOKEN,
+            orgId: FAKE_ORG_ID,
+            defaults: {}
+        });
+        const base_url = "https://api.adobe.io";
+        const consumerId = "consumer2";
+        const applicationId = "application2";
+        const registrationsPath = `/events/organizations/${consumerId}/integrations/${applicationId}/registrations`;
+
+        nock(base_url)
+            .matchHeader('Authorization', `Bearer ${FAKE_ACCESS_TOKEN}`)
+            .matchHeader('x-ims-org-id', FAKE_ORG_ID)
+            .post(registrationsPath)
+            .reply(409);
+
+        let threw = false;
+        try {
+            await ioEvents.createJournal({
+                name: "Asset Compute Journal",
+                description: "no conflicting id",
+                providerId: TEST_PROVIDER_ID,
+                eventTypes: [TEST_EVENT_CODE],
+                consumerId: consumerId,
+                applicationId: applicationId
+            });
+        } catch (e) {
+            threw = true;
+            assert.equal(e.statusCode, 409);
+        }
+        assert.ok(threw);
+    });
+});
